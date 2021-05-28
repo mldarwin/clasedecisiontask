@@ -1,0 +1,23 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1561\cocoasubrtf600
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;\red251\green2\blue7;\red0\green0\blue0;\red251\green2\blue7;
+}
+{\*\expandedcolortbl;;\cssrgb\c100000\c14913\c0;\cssrgb\c0\c0\c0;\cssrgb\c100000\c14913\c0;
+}
+\margl1440\margr1440\vieww10800\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 Matlab code for running the VNI task in the scanner:\
+\
+1) Make sure you are in the correct directory: \\Users\\inc\\Documents\\Sokol-Hessner Lab\
+\
+2a) If you are starting the task from the very beginning of the scan (this means the task is not being restarted), then type following code into the command line (REPLACE ### WITH SUBJECT ID and keep the single quotation marks):\
+\cf2 vniMRItaskFlex(\'91###\'92)\
+\
+\
+\cf3 2b) If you are restarting the task from run 1, 2, or 3, use the code below but replace the ### with the subject ID (keep the single quotation marks) followed by a comma then either a 1, 2, or 3 depending on the run you want to restart.\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf3 To start from run 1:   \cf4 vniMRItaskFlex(\'91###\'92, 1)\
+\cf3 To start from run 2:\cf4    vniMRItaskFlex(\'91###\'92, 2)\
+\cf3 To start from run 3:   \cf4 vniMRItaskFlex(\'91###\'92, 3)}
