@@ -1,4 +1,5 @@
-# clasedecisiontask
+# CLASE Decision Task
+
 Code & supporting documents related to the risky decision-making task for use in the CLASE project.
 
 Contains three main directories:
