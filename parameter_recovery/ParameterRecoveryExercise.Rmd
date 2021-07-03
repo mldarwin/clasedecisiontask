@@ -1,0 +1,297 @@
+---
+title: "CLASE Parameter Recovery Exercise"
+author: "Peter Sokol-Hessner"
+output:
+  #pdf_notebook: default
+  html_notebook: default
+---
+  
+This notebook executes and analyzes the results of a parameter recovery exercise to quantify the effectiveness of the choice set designed for the CLASE experiment to estimate/dissociate component processes of risky decision-making.
+
+# General Setup
+
+```{r}
+rm(list = ls())
+
+source('./choice_probability.R');
+source('./binary_choice_from_probability.R')
+source('./negLLprospect.R');
+library('ggplot2')
+library('doParallel')
+library('foreach')
+library('numDeriv')
+eps = .Machine$double.eps;
+```
+
+
+## Loading the choice set
+```{r}
+choiceset_path = '../choice_set/novel_choiceset_creation/clasechoiceset_N120_gainloss_gainonly.csv';
+
+choiceset <- read.csv(choiceset_path);
+
+number_of_choices = nrow(choiceset);
+
+head(choiceset)
+
+gainlossind = choiceset$certainalternative == 0;
+gainonlyind = choiceset$certainalternative > 0;
+
+plot(choiceset$riskygain[gainlossind],choiceset$riskyloss[gainlossind],main = 'Gain-Loss Trial Values',xlab = 'Risky Gain ($)',ylab = 'Risky Loss ($)');
+
+plot(choiceset$riskygain[gainonlyind],choiceset$certainalternative[gainonlyind],main = 'Gain-Only Trial Values',xlab = 'Risky Gain ($)',ylab = 'Certain Alternative ($)');
+
+```
+## Ground Truth Preparation
+
+Specify the set of parameter values (the "ground truth") we will be trying to recover using simulated choices over the above choice set. 
+
+```{r}
+number_of_parameters = 3;
+
+truevals_rho = c(0.8, 0.9, 1, 1.1); # risk attitudes
+truevals_lambda = c(0.8, 1, 1.2, 1.4, 1.6, 1.8, 2, 2.5, 3, 4, 5); # loss aversion
+truevals_mu = c(10,30,100); # choice consistency
+
+truevals = expand.grid(truevals_rho, truevals_lambda, truevals_mu);
+colnames(truevals) <- c('rho','lambda','mu')
+
+number_of_subjects = nrow(truevals);
+
+```
+
+There are `r length(truevals_rho)` values of rho, `r length(truevals_lambda)` values of lambda, and `r length(truevals_mu)` values of mu, for a combined total of `r number_of_subjects` unique parameter combinations. 
+
+## Meta-parameters for Parameter Recovery Exercise
+The values that govern how we will execute the parameter recovery exercise.
+
+```{r}
+simulations_per_subject = 50; # how many times to stochastically create binary choices and estimate parameter values for each unique parameter combination.
+iterations_per_estimation = 50; # how many times to perform the maximum likelihood estimation procedure on a given choiceset, for robustness.
+
+```
+
+## Visualizing simulated choice probabilities and binary choices
+Plot choice probabilities and binary choices as a sanity check that code correctly generates choices.
+
+```{r}
+example_parameters = c(.89, 1.8, 30); 
+
+example_choice_probability = choice_probability(choiceset,example_parameters);
+example_choice_binarychoices = binary_choice_from_probability(example_choice_probability);
+
+example_choice_dataframe = data.frame(choiceset, example_choice_probability, example_choice_binarychoices);
+
+# Plot histogram of choice probabilities to see how variable choices are predicted to be.
+hist(example_choice_probability,xlab = 'Probability of Selecting Risky Option', ylab = 'Count of this probability', main = 'Distribution of choice probabilities given parameters');
+
+# Plot p(choose risky option) given parameters as a function of choice values
+example_probabilistic_gainloss_plot = ggplot(data = example_choice_dataframe[example_choice_dataframe$certainalternative == 0,], aes(x = riskygain, y = riskyloss)) + 
+  geom_point(aes(color = example_choice_probability)) + 
+  scale_colour_gradient(low='red',high='green');
+print(example_probabilistic_gainloss_plot);
+
+example_probabilistic_gainonly_plot = ggplot(data = example_choice_dataframe[example_choice_dataframe$certainalternative > 0,], aes(x = riskygain, y = certainalternative)) + 
+  geom_point(aes(color = example_choice_probability)) + 
+  scale_colour_gradient(low='red',high='green');
+print(example_probabilistic_gainonly_plot);
+
+# Plot simulated binary choices given parameters as a function of choice values
+example_binary_gainloss_plot = ggplot(data = example_choice_dataframe[example_choice_dataframe$certainalternative == 0,], aes(x = riskygain, y = riskyloss)) + 
+  geom_point(aes(color = example_choice_binarychoices)) + 
+  scale_color_manual(values = c('#ff0000','#00ff44'));
+print(example_binary_gainloss_plot);
+
+example_binary_gainonly_plot = ggplot(data = example_choice_dataframe[example_choice_dataframe$certainalternative > 0,], aes(x = riskygain, y = certainalternative)) + 
+  geom_point(aes(color = example_choice_binarychoices)) + 
+  scale_color_manual(values = c('#ff0000','#00ff44'));
+print(example_binary_gainonly_plot);
+```
+
+# Parameter Recovery Operations
+
+## Step 1: Simulate Choice Data
+
+The first step is to create the simulated choice data for each simulation (N = `r simulations_per_subject`) of each of the possible people (N = `r number_of_subjects`). This amounts to simulating a total of `r simulations_per_subject * number_of_subjects` people making a total of `r format(simulations_per_subject * number_of_subjects * number_of_choices,scientific=F)` choices.
+
+```{r}
+simulation_start_time = proc.time()[[3]];
+
+simulated_choice_data = array(data = NA, dim = c(number_of_choices, simulations_per_subject, number_of_subjects));
+
+progress_bar = txtProgressBar(min = 0, max = number_of_subjects, style = 3)
+
+for (subject in 1:number_of_subjects){
+  temp_choice_probability = choice_probability(choiceset,truevals[subject,]);
+  for (simulation in 1:simulations_per_subject){
+    simulated_choice_data[,simulation,subject] = binary_choice_from_probability(temp_choice_probability);
+  }
+  setTxtProgressBar(progress_bar, subject)
+}
+
+close(progress_bar)
+
+simulation_time_elapsed = proc.time()[[3]] - simulation_start_time
+
+```
+Completing all simulations took `r simulation_time_elapsed` seconds.
+
+## Step 2: Use simulated choices to estimate parameter values
+
+This step is expected to **take some time**. 
+
+```{r}
+set.seed(Sys.time()); # Estimation procedure is sensitive to starting values
+
+initial_values_lowerbound = c(0.2, 0.2, 1); # for rho, lambda, and mu
+initial_values_upperbound = c(1.5, 5, 20) - initial_values_lowerbound; # for rho, lambda, and mu
+
+estimation_lowerbound = c(eps,eps,eps);
+estimation_upperbound = c(2, 8, 200);
+
+recovered_parameters = array(dim = c(number_of_subjects, number_of_parameters, simulations_per_subject));
+recovered_parameter_errors = array(dim = c(number_of_subjects, number_of_parameters, simulations_per_subject));
+recovered_nlls = array(dim = c(number_of_subjects, simulations_per_subject));
+
+progress_bar = txtProgressBar(min = 0, max = number_of_subjects, style = 3)
+
+n.cores <- parallel::detectCores() - 1;
+my.cluster <- parallel::makeCluster(
+  n.cores,
+  type = "FORK"
+  )
+doParallel::registerDoParallel(cl = my.cluster)
+
+
+estimation_start_time = proc.time()[[3]];
+
+for (subject in 1:number_of_subjects){
+  for (simulation in 1:simulations_per_subject){
+    
+    # Placeholders for all the iterations of estimation we're doing
+    all_estimates = matrix(nrow = iterations_per_estimation, ncol = number_of_parameters);
+    all_nlls = matrix(nrow = iterations_per_estimation, ncol = 1);
+    all_hessians = array(dim = c(iterations_per_estimation, number_of_parameters, number_of_parameters))
+    
+    # for (iteration in 1:iterations_per_estimation){
+    #   initial_values = runif(3)*initial_values_upperbound + initial_values_lowerbound;
+    #   
+    #   output <- optim(initial_values, negLLprospect, choiceset = choiceset, choices = simulated_choice_data[,simulation,subject], method = "L-BFGS-B", lower = estimation_lowerbound, upper = estimation_upperbound, hessian = TRUE);
+    #   
+    #   all_estimates[iteration,] = output$par;
+    #   all_nlls[iteration] = output$value;
+    #   all_hessians[iteration,,] = output$hessian;
+    # 
+    # }
+    
+    alloutput <- foreach(iteration=1:iterations_per_estimation, .combine=rbind) %dopar% {
+      initial_values = runif(3)*initial_values_upperbound + initial_values_lowerbound;
+
+      output <- optim(initial_values, negLLprospect, choiceset = choiceset, choices = simulated_choice_data[,simulation,subject], method = "L-BFGS-B", lower = estimation_lowerbound, upper = estimation_upperbound, hessian = TRUE);
+
+      c(output$par,output$value);
+    }
+
+    all_estimates = alloutput[,1:3];
+    all_nlls = alloutput[,4];
+    
+    best_nll_index = which.min(all_nlls); # identify the single best estimation
+    
+    recovered_parameters[subject,,simulation] = all_estimates[best_nll_index,];
+    recovered_nlls[subject, simulation] = all_nlls[best_nll_index];
+    
+    # recovered_parameter_errors[subject,,simulation] = sqrt(diag(solve(all_hessians[best_nll_index,,])));
+    
+    best_hessian = hessian(func=negLLprospect, x = all_estimates[best_nll_index,], choiceset = choiceset, choices = simulated_choice_data[,simulation,subject])
+    recovered_parameter_errors[subject,,simulation] = sqrt(diag(solve(best_hessian)));
+  }
+  setTxtProgressBar(progress_bar, subject)
+}
+
+close(progress_bar)
+parallel::stopCluster(cl = my.cluster)
+
+estimation_time_elapsed = proc.time()[[3]] - estimation_start_time;
+
+```
+Estimation took `r estimation_time_elapsed/60/60` hours. 
+
+## Step 3: Evaluate success
+Evaluate how well original parameters were recovered. 
+
+### Plot recovered values against ground truth values
+First, simply plot average estimates across simulations against true values
+```{r}
+mean_recovered_parameters = apply(recovered_parameters,c(1,2),mean); # take mean on the 3rd dimension (simulations of a single 'individual')
+colnames(mean_recovered_parameters) <- c('recovered_rho','recovered_lambda','recovered_mu')
+
+parameters_df = data.frame(truevals,mean_recovered_parameters);
+
+# Go parameter-by-parameter, and collapsing across all other parameter values, examine how well the recovered values (means across simulations) reproduce the ground truth values. i.e. if there are three possible levels of rho (risk attitudes), combined with many other lambda & mu values, look at all of the recovered rho values (for all possible combos w/ lambda & mu). After using the mean across simulations, use the median value across different individuals
+
+# Do Rho
+overall_median_recovered_rho = array(dim=length(truevals_rho))
+for (n in 1:length(truevals_rho)){
+  overall_median_recovered_rho[n] = median(parameters_df$recovered_rho[parameters_df$rho==truevals_rho[n]])
+}
+median_rho_parameters_df = data.frame(truevals_rho,overall_median_recovered_rho)
+
+plot_recoveredrho = ggplot(data=parameters_df, aes(x = rho, y = recovered_rho)) + 
+  geom_point() + 
+  geom_segment(aes(x = min(truevals_rho), y = min(truevals_rho), xend = max(truevals_rho), yend = max(truevals_rho),colour='line of identity')) + 
+  geom_point(data = median_rho_parameters_df, mapping = aes(x = truevals_rho, y = overall_median_recovered_rho,color='median recovered values',size=10)) + 
+  xlab('True Rho Value') + ylab ('Recovered Rho Value') + ggtitle('Recovery: Rho (Risk Attitudes)');
+print(plot_recoveredrho)
+
+# Do Lambda
+overall_median_recovered_lambda = array(dim=length(truevals_lambda))
+for (n in 1:length(truevals_lambda)){
+  overall_median_recovered_lambda[n] = median(parameters_df$recovered_lambda[parameters_df$lambda==truevals_lambda[n]])
+}
+median_lambda_parameters_df = data.frame(truevals_lambda,overall_median_recovered_lambda)
+
+plot_recoveredlambda = ggplot(data=parameters_df, aes(x = lambda, y = recovered_lambda)) + 
+  geom_point() + 
+  geom_segment(aes(x = min(truevals_lambda), y = min(truevals_lambda), xend = max(truevals_lambda), yend = max(truevals_lambda),colour='line of identity')) + 
+  geom_point(data = median_lambda_parameters_df, mapping = aes(x = truevals_lambda, y = overall_median_recovered_lambda,color='median recovered values',size=10))+ 
+  xlab('True Lambda Value') + ylab ('Recovered Lambda Value') + ggtitle('Recovery: Lambda (Loss Aversion)');
+print(plot_recoveredlambda)
+
+# Do Mu
+overall_median_recovered_mu = array(dim=length(truevals_mu))
+for (n in 1:length(truevals_mu)){
+  overall_median_recovered_mu[n] = median(parameters_df$recovered_mu[parameters_df$mu==truevals_mu[n]])
+}
+median_mu_parameters_df = data.frame(truevals_mu,overall_median_recovered_mu)
+
+plot_recoveredmu = ggplot(data=parameters_df, aes(x = mu, y = recovered_mu)) + 
+  geom_point() + 
+  geom_segment(aes(x = min(truevals_mu), y = min(truevals_mu), xend = max(truevals_mu), yend = max(truevals_mu),colour='line of identity')) + 
+  geom_point(data = median_mu_parameters_df, mapping = aes(x = truevals_mu, y = overall_median_recovered_mu,color='median recovered values',size=10))+ 
+  xlab('True Mu Value') + ylab ('Recovered Mu Value') + ggtitle('Recovery: Mu (Choice Consistency)');
+print(plot_recoveredmu)
+```
+### Examine 95% CIs of estimated parameters
+Second, look at the 95% confidence intervals for the estimated parameters, and quantify how often the ground truth parameters are included in that interval (should be roughly 95% of the time). 
+
+```{r}
+conf_interval_zscore = 1.96; # the value to multiply the SE by to calculate the 95% CI, given parameter point estimate & SE
+
+upper_bound = recovered_parameters + conf_interval_zscore * recovered_parameter_errors;
+lower_bound = recovered_parameters - conf_interval_zscore * recovered_parameter_errors;
+
+is_in_confidence_interval = array(dim=dim(recovered_parameters));
+
+for(simulation in 1:simulations_per_subject){
+  is_in_confidence_interval[,,simulation] = (truevals < upper_bound[,,simulation]) & (truevals > lower_bound[,,simulation]);
+}
+
+percent_accurately_recovered = mean(is_in_confidence_interval,na.rm=T) # na.rm req. b/c sometimes hessian is indeterminate (is not at a true minimum)
+
+sum(is.na(is_in_confidence_interval)) # how many NAs are there
+sum(is.na(is_in_confidence_interval))/prod(dim(is_in_confidence_interval)) # fraction (0:1) that is NA
+```
+
+The procedure resulted in an overall accuracy of parameter recovery of `r format(percent_accurately_recovered*100,digits = 4)`, over `r prod(dim(is_in_confidence_interval))` total simulations (we expect ~95%). 
+
+Ran a version with 3 values of rho (0.8, 0.95, 1.1), 10 values of lambda (0.8, 1, 1.2, 1.4, 1.6, 1.8, 2, 2.5, 3.5, 5), and 3 values of mu (10, 30, 100), which makes a total of 90 'subjects'; 25 simulations per subject; and 30 iterations of the MLE estimation procedure when fitting. This took roughly one hour to get estimates for each of the 6,750 parameter values (90 subjects, 3 parameter values/individual, and 25 simulations/subject), and those estimates (and errors) had an overall accuracy of 94.70% (expecting ~95%), meaning that the _true value_ of the parameter was within the 95% confidence interval of the estimated value 94.70% of the time. 
