@@ -74,7 +74,7 @@ iterations_per_estimation = 50; # how many times to perform the maximum likeliho
 Plot choice probabilities and binary choices as a sanity check that code correctly generates choices.
 
 ```{r plot-an-example-participant}
-example_parameters = c(.89, 1.8, 30); 
+example_parameters = c(.89, 1.8, 50); 
 
 example_choice_probability = choice_probability(choiceset,example_parameters);
 example_choice_binarychoices = binary_choice_from_probability(example_choice_probability);
