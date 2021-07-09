@@ -25,6 +25,11 @@ function DOSE = runDose(DataFile, utilityFunction, prior_typeRho, prior_typeLamb
 % 				Former is faster, but will not work on v.large datasets due to matrix size
 % saveMatlab = 'yes' to save matlab file as well (this can be dataintensive)
 % header = write 'noheader' if .csv input has no header row  or 'header'
+%
+%
+% EXAMPLE CALL:
+% runDose('EconoSurvRiskPrefWave1','CRRA',100,100,100,'original','WEPwave1_CRRAoriginal100pt','maximum','allSubjects','no', 'header')
+% runDose(DataFile, utilityFunction, prior_typeRho, prior_typeLambda,prior_typeMu, Choice, outputFile, numQus, softmaxGroup, saveMatlab, header)
 
 %%%      By: Judah Okwuobi, Jonathan Chapman
 %%% Updated: 5/17/2018
