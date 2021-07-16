@@ -122,6 +122,7 @@ while run <= maxruns
         disp 'priorTensor is not given. Object is being created...'
         priorTensor = kron(priors.rho(2,:), kron(priors.lam(2,:), priors.mu(2,:)));
         priorTensor = reshape(priorTensor(:), [numMus numLambdas numRhos]);
+        disp 'priorTensor created.'
     end
 
     % If selected above, softmax Array is calculated 
@@ -158,6 +159,7 @@ while run <= maxruns
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         sub_id = sub_ids(i);
         disp(['Subject  ' num2str(sub_id)]);
+        tsubj = tic;
 
         % Nx4 Matrix of subject data including question list and user
         % choice over N rounds of question from Survey
@@ -199,7 +201,7 @@ while run <= maxruns
             warning(['question order type must be one of "optimal" or "original"'...
                      ' otherwise the procedure might produce nonsensical results'])
         end
-        estimatesTime(i) = toc(t);
+        estimatesTime(i) = toc(tsubj);
         disp(['Subject  ' num2str(sub_id)  '  Elapsed Time:  ' num2str(estimatesTime(i))])
 
         %%% Probability tensor is aggregated across subjects
