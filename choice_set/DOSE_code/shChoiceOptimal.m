@@ -52,7 +52,7 @@ klSoftmaxQlist = softmaxArray.master_qlist(q_index,:);
 % Loop over the number of questions and input results into array
 %endTime = ones(numQ,1); % For recording time of each round
 for round = 1:numQ
-    %round
+    round
     resultArray(round, 12) = round; % Store the round number in the array
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -190,10 +190,10 @@ for round = 1:numQ
 
 
     endTime(round) = toc(t);
-    if ismember(round, [numQ])
+%     if ismember(round, [numQ])
     disp(['Subject  ' num2str(sub_id)  '  Round:  ' num2str(round) ...
           ' Elapsed Time:  ' num2str(endTime(round))])
-    end
+%     end
 
 end
 
