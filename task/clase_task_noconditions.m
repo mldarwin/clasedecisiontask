@@ -206,7 +206,7 @@ try
         end
     end
     
-    DrawFormattedText(wind,'Remember that you can only enter your choice by pressing a response key once the ''LEFT   RIGHT'' prompt comes up on the bottom of the screen.','center',.1*h,wht,40);
+    DrawFormattedText(wind,'Remember that you can only enter your choice by pressing a response key once the ''Z - left    M - right'' prompt comes up on the bottom of the screen.\n\nTo ensure that you can respond in time, please keep one finger on the left key and one on the right key at all times during the task.','center',.1*h,wht,40);
     Screen('Flip',wind,[],1);
     WaitSecs(1.5);
     DrawFormattedText(wind,'Press either response key to continue.','center',.9*h,wht,40);
@@ -276,8 +276,8 @@ try
         
         % ready the response period stuff that will show up in the response
         % collection period
-        DrawFormattedText(wind, 'Left','center', 'center',wht,[],[],[],[],[],[lRect(1),lRect(4) lRect(3) lRect(4)+lRect(2)]);
-        DrawFormattedText(wind, 'Right','center', 'center',wht,[],[],[],[],[],[rRect(1),rRect(4) rRect(3) rRect(4)+rRect(2)]);
+        DrawFormattedText(wind, 'Z - left','center', 'center',wht,[],[],[],[],[],[lRect(1),lRect(4) lRect(3) lRect(4)+lRect(2)]);
+        DrawFormattedText(wind, 'M - right','center', 'center',wht,[],[],[],[],[],[rRect(1),rRect(4) rRect(3) rRect(4)+rRect(2)]);
         
         while GetSecs - subjdata.practice.studystart < t*prestime + (t-1)*(choicetime + isitime + feedbacktime) + sum(ititime(1:(t-1)))
             [keyIsDown,~,keyCode] = KbCheck;
@@ -560,8 +560,8 @@ try
         
         % ready the response period stuff that will show up in the response
         % collection period
-        DrawFormattedText(wind, 'Left','center', 'center',wht,[],[],[],[],[],[lRect(1),lRect(4) lRect(3) lRect(4)+lRect(2)]);
-        DrawFormattedText(wind, 'Right','center', 'center',wht,[],[],[],[],[],[rRect(1),rRect(4) rRect(3) rRect(4)+rRect(2)]);
+        DrawFormattedText(wind, 'Z - left','center', 'center',wht,[],[],[],[],[],[lRect(1),lRect(4) lRect(3) lRect(4)+lRect(2)]);
+        DrawFormattedText(wind, 'M - right','center', 'center',wht,[],[],[],[],[],[rRect(1),rRect(4) rRect(3) rRect(4)+rRect(2)]);
         
         while GetSecs - subjdata.ts.blockStart(b) < triBlock*(prestime) + (triBlock-1)*(isitime + choicetime + feedbacktime) + sum(ititime(triBlockStart(b):(t-1)))
             [keyIsDown,~,keyCode] = KbCheck;
