@@ -173,11 +173,11 @@ subjdata.params.feedbackdelay = isitime; % ISI btwn choice & outcome
 subjdata.params.feedbacktime = feedbacktime; % outcome viewing
 subjdata.params.ititime = ititime; % ITI between outcome & subsequent choice
 
-nTp = 5; % 5 quick practice trials
+nTp = 10; % 5 quick practice trials
 subjdata.practice = struct();
-subjdata.practice.riskyGain =   [10, 33.15,    4,    2, 8];
-subjdata.practice.riskyLoss =   [-8,     0, -6.5, -3.5, 0];
-subjdata.practice.alternative = [ 0, 18.35,    0,    0, 2];
+subjdata.practice.riskyGain =   [10, 33.15,    4,    2, 8,  5,  8, 22, 18,   10];
+subjdata.practice.riskyLoss =   [-8,     0, -6.5, -3.5, 0, -4, -8,  0,  0, -7.5];
+subjdata.practice.alternative = [ 0, 18.35,    0,    0, 2,  0,  0, 19,  7,    0];
 subjdata.practice.choice = nan(nTp,1); %used size of cs instead of nT for testing purposes when nT = 6
 subjdata.practice.outcome = nan(nTp,1);
 subjdata.practice.loc = nan(nTp,1);% what side of the screen were gamble and alt presented;loc = 1: gamble on left, alternative or right, loc = 2 alt on left, gamble on the right
@@ -206,8 +206,24 @@ try
         end
     end
     
+    DrawFormattedText(wind,'Remember that you can only enter your choice by pressing a response key once the ''LEFT   RIGHT'' prompt comes up on the bottom of the screen.','center',.1*h,wht,40);
+    Screen('Flip',wind,[],1);
+    WaitSecs(1.5);
+    DrawFormattedText(wind,'Press either response key to continue.','center',.9*h,wht,40);
+    Screen('Flip',wind);
+    while 1
+        [keyIsDown,~,keyCode] = KbCheck;
+        if (keyIsDown && size(find(keyCode),2)==1)
+            if keyCode(esc_key_code)
+                error('Experiment aborted by user'); % allow aborting the study here
+            elseif any(keyCode(resp_key_codes)) % participant can start study when ready
+                break % change screen as soon as they respond
+            end
+        end
+    end
+    
     %---------------------Practice-----------------------%
-    DrawFormattedText(wind,'If you have any questions, you can ask your experimenter now.\n\n\nIf not, you will now do five (5) practice trials. These look and work identically to real trials (i.e. timing, dollar values), but do not count!','center',.1*h,wht,40);
+    DrawFormattedText(wind,'If you have any questions, you can ask your experimenter now.\n\n\nIf not, you will now do ten (10) practice trials. These look and work identically to real trials (i.e. timing, dollar values), but do not count!','center',.1*h,wht,40);
     Screen('Flip',wind,[],1);
     WaitSecs(1.5);
     DrawFormattedText(wind,'Press either response key to continue to the practice trials! When you do, there will be a 5 second warning, and then the trials will begin.','center',.75*h,wht,40);
