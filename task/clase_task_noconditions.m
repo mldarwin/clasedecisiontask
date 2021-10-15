@@ -34,7 +34,7 @@ function [subjdata] = clase_task_noconditions(subjID, isreal)
 clc % clear command window
 
 if nargin <2
-    isreal = 0; %assume NOT real (makes experiment shorter)
+    isreal = 1; %assume NOT real (makes experiment shorter)
     if nargin < 1 % if number of input arguments for this function is less than one,
         warning('Do not collect data without a subject ID number!')
         warning('If you are collecting data for real, SPECIFY A SUBJECT ID NUMBER, ###');
@@ -483,6 +483,7 @@ try
     
     %Now the real task can begin!
     
+    DatapixxAOttl(); % TTL pulse marking start of the actual study
     subjdata.ts.studystart = GetSecs; % log the study start time
     b = 1;
     triStart = 1;
@@ -556,6 +557,7 @@ try
         end
         DrawFormattedText(wind,'OR','center','center',wht); % place OR between both ovals
         
+        DatapixxAOttl(); % TTL pulse marking screen flip that shows choice options
         subjdata.ts.stimStart(t) = Screen('Flip',wind,[],1); %show the stimuli
         
         % ready the response period stuff that will show up in the response
@@ -574,6 +576,7 @@ try
         
         %----------response collection-----------%
         %display keys for choices on screen
+        DatapixxAOttl(); % TTL pulse marking start of the response window
         subjdata.ts.choiceStart(t) = Screen('Flip',wind); % show the v and n on the screen, nows ps can respond
         
         while GetSecs - subjdata.ts.blockStart(b) < triBlock*(prestime + choicetime) + (triBlock-1)*(isitime + feedbacktime) + sum(ititime(triBlockStart(b):(t-1)))
@@ -594,6 +597,7 @@ try
         
         %------ISI------%
         Screen('gluDisk',wind,wht,xCenter,yCenter,3); % make a white dot that will be displayed during ISI
+        DatapixxAOttl(); % TTL pulse marking end of the response window (due to button press OR expiration of time
         subjdata.ts.isiStart(t) = Screen('Flip',wind); %now isi starts
         
         if any(keyCode(resp_key_codes))
@@ -665,7 +669,7 @@ try
             
         end % end this feedback for loop; now feedback has been prepped and is ready to be displayed when isi is over
         
-        
+        DatapixxAOttl(); % TTL pulse marking start of the outcome epoch
         subjdata.ts.otcStart(t) =  Screen('Flip',wind); % show feedback
         
         Screen('gluDisk',wind,wht,xCenter,yCenter,3); % make a white dot that will be displayed during iti
@@ -686,6 +690,7 @@ try
         
         % ------ ITI ------ %
         
+        DatapixxAOttl(); % TTL pulse marking end of outcome epoch
         subjdata.ts.itiStart(t) = Screen('Flip',wind); %show white dot on the screen
         
         
@@ -705,6 +710,7 @@ try
         
     end %for t = triStart:nT
     
+    DatapixxAOttl(); % TTL pulse marking end of the study
     subjdata.ts.studystop = GetSecs; % mark the end-time
     
     %---Outcome selection and wrap up---%
