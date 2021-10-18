@@ -25,7 +25,7 @@ eps = .Machine$double.eps;
 
 ## Loading the choice set
 ```{r load-choice-set}
-choiceset_path = '../choice_set/novel_choiceset_creation/clasechoiceset_N120_gainloss_gainonly.csv';
+choiceset_path = '../choice_set/novel_choiceset_creation/clasechoiceset_N125_gainloss_gainonly.csv';
 
 choiceset <- read.csv(choiceset_path);
 
@@ -33,8 +33,8 @@ number_of_choices = nrow(choiceset);
 
 head(choiceset)
 
-gainlossind = choiceset$certainalternative == 0;
-gainonlyind = choiceset$certainalternative > 0;
+gainlossind = choiceset$riskyloss < 0;
+gainonlyind = choiceset$riskyloss >= 0;
 
 plot(choiceset$riskygain[gainlossind],choiceset$riskyloss[gainlossind],main = 'Gain-Loss Trial Values',xlab = 'Risky Gain ($)',ylab = 'Risky Loss ($)');
 
@@ -50,7 +50,7 @@ number_of_parameters = 3;
 
 truevals_rho = c(0.8, 0.9, 1, 1.1); # risk attitudes
 truevals_lambda = c(0.8, 1, 1.2, 1.4, 1.6, 1.8, 2, 2.5, 3, 3.5, 4, 4.5, 5); # loss aversion
-truevals_mu = c(10,50,150); # choice consistency
+truevals_mu = c(50,75,100); # choice consistency
 
 truevals = expand.grid(truevals_rho, truevals_lambda, truevals_mu);
 colnames(truevals) <- c('rho','lambda','mu')
@@ -85,23 +85,23 @@ example_choice_dataframe = data.frame(choiceset, example_choice_probability, exa
 hist(example_choice_probability,xlab = 'Probability of Selecting Risky Option', ylab = 'Count of this probability', main = 'Distribution of choice probabilities given parameters');
 
 # Plot p(choose risky option) given parameters as a function of choice values
-example_probabilistic_gainloss_plot = ggplot(data = example_choice_dataframe[example_choice_dataframe$certainalternative == 0,], aes(x = riskygain, y = riskyloss)) + 
+example_probabilistic_gainloss_plot = ggplot(data = example_choice_dataframe[example_choice_dataframe$riskyloss < 0,], aes(x = riskygain, y = riskyloss)) + 
   geom_point(aes(color = example_choice_probability)) + 
   scale_colour_gradient(low='red',high='green');
 print(example_probabilistic_gainloss_plot);
 
-example_probabilistic_gainonly_plot = ggplot(data = example_choice_dataframe[example_choice_dataframe$certainalternative > 0,], aes(x = riskygain, y = certainalternative)) + 
+example_probabilistic_gainonly_plot = ggplot(data = example_choice_dataframe[example_choice_dataframe$riskyloss >= 0,], aes(x = riskygain, y = certainalternative)) + 
   geom_point(aes(color = example_choice_probability)) + 
   scale_colour_gradient(low='red',high='green');
 print(example_probabilistic_gainonly_plot);
 
 # Plot simulated binary choices given parameters as a function of choice values
-example_binary_gainloss_plot = ggplot(data = example_choice_dataframe[example_choice_dataframe$certainalternative == 0,], aes(x = riskygain, y = riskyloss)) + 
+example_binary_gainloss_plot = ggplot(data = example_choice_dataframe[example_choice_dataframe$riskyloss < 0,], aes(x = riskygain, y = riskyloss)) + 
   geom_point(aes(color = example_choice_binarychoices)) + 
   scale_color_manual(values = c('#ff0000','#00ff44'));
 print(example_binary_gainloss_plot);
 
-example_binary_gainonly_plot = ggplot(data = example_choice_dataframe[example_choice_dataframe$certainalternative > 0,], aes(x = riskygain, y = certainalternative)) + 
+example_binary_gainonly_plot = ggplot(data = example_choice_dataframe[example_choice_dataframe$riskyloss >= 0,], aes(x = riskygain, y = certainalternative)) + 
   geom_point(aes(color = example_choice_binarychoices)) + 
   scale_color_manual(values = c('#ff0000','#00ff44'));
 print(example_binary_gainonly_plot);
@@ -136,8 +136,8 @@ This step is expected to **take some time**.
 ```{r estimate-parameter-values}
 set.seed(Sys.time()); # Estimation procedure is sensitive to starting values
 
-initial_values_lowerbound = c(0.2, 0.2, 1); # for rho, lambda, and mu
-initial_values_upperbound = c(1.5, 5, 20) - initial_values_lowerbound; # for rho, lambda, and mu
+initial_values_lowerbound = c(0.6, 0.2, 25); # for rho, lambda, and mu
+initial_values_upperbound = c(1.4, 5, 100) - initial_values_lowerbound; # for rho, lambda, and mu
 
 estimation_lowerbound = c(eps,eps,eps); # lower bound of parameter values is machine precision above zero
 estimation_upperbound = c(2, 8, 300); # sensible/probable upper bounds on parameter values
@@ -197,6 +197,11 @@ for (subject in 1:number_of_subjects){
 close(progress_bar)
 parallel::stopCluster(cl = my.cluster)
 estimation_time_elapsed = (proc.time()[[3]] - estimation_start_time)/60/60; # time elapsed in HOURS
+
+save(list = c('recovered_parameters','recovered_nlls','recovered_parameter_errors',
+              'simulated_choice_data','truevals_rho','truevals_lambda','truevals_mu',
+              'truevals','number_of_subjects','simulations_per_subject','iterations_per_estimation',
+              'choiceset'), file = 'parameter_recovery_output.RData')
 
 ```
 Estimation took `r estimation_time_elapsed` hours. 
