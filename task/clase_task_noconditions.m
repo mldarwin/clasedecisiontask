@@ -1,25 +1,31 @@
-function [subjdata] = clase_task_noconditions(subjID, isreal)
-% clase_task_noconditions(subjID, isreal)
+function [subjdata] = clase_task_noconditions(subjID, do_full, do_TTL, do_prac)
+% [subjdata] = clase_task_noconditions(subjID, do_full, do_TTL, do_prac)
 % 
 % subjID: '###', i.e. '001', '012', etc.
-%    '000' is understood to be the test subject number
-% isreal:
-%      0 = not real, i.e. test (runs 12 trials in 3 blocks)
-%      1 = real (run 125 trials in 5 blocks)
+%       '000' is understood to be the test subject number
+% do_full:
+%       0 = do a shortened version (runs 12 trials in 3 blocks)
+%       1 = do the full version (run 125 trials in 5 blocks)
+% do_TTL:
+%       0 = do not send TTL pulses (for testing on systems w/o TTL
+%       functionality)
+%       1 = send TTLs
+% do_prac:
+%       0 = do not do practice trials (for testing)
+%       1 = do practice trials
 %
-% DEFAULT is clase_task_noconditions('000', 0)
 %
-%
-% Should be run from within the GitHub repository, so that the choice set
-% can appropriately load.
-% 
 % Script for running the choice set once, with no separate conditions
-% for the CLASE study.
-%
+% for the CLASE study. Should be run from within the GitHub repository, so 
+% that the choice set can appropriately load.
+% 
 % Based on the VNI neuroimaging script updated on 6/8/20, by Hayley 
 % Brooks, University of Denver
 %
 % Peter Sokol-Hessner
+% University of Denver
+% Peter.Sokol-Hessner@du.edu
+% GitHub: github.com/psokolhessner
 
 % % For use with actual path on testing laptop
 % try
@@ -33,20 +39,37 @@ function [subjdata] = clase_task_noconditions(subjID, isreal)
 
 clc % clear command window
 
-if nargin <2
-    isreal = 1; %assume NOT real (makes experiment shorter)
-    if nargin < 1 % if number of input arguments for this function is less than one,
-        warning('Do not collect data without a subject ID number!')
-        warning('If you are collecting data for real, SPECIFY A SUBJECT ID NUMBER, ###');
-        subjID = '000'; % set the default subject ID in case we don't include one.
+if nargin < 4
+    do_prac = 1; % default: do the practice
+    if nargin < 3
+        do_TTL = 1; % default: do TTL pulses
+        if nargin < 2
+            do_full = 1; % default: do full-length version
+            if nargin < 1 % if number of input arguments for this function is less than one,
+                warning('Do not collect data without a subject ID number!')
+                warning('If you are collecting data, YOU MUST SPECIFY A SUBJECT ID NUMBER in this format: ''###''');
+                subjID = '000'; % set the default subject ID in case we don't include one.
+            end
+        end
     end
 end
 
-if length(subjID) >3
+fprintf('do_prac set to %i\n',do_prac);
+fprintf('do_TTL set to %i\n',do_TTL);
+fprintf('do_full set to %i\n',do_full);
+
+if isa(subjID,'double')
+    subjID = sprintf('%03d',subjID);
+    warning('Specify subject ID numbers with the ''###'' format, e.g. ''001''!')
+end
+
+if length(subjID) > 3
     error('Subject ID too long')
 elseif length(subjID) < 3
     error('Subject ID too short')
 end
+
+fprintf('Proceeding with subject ID of %s\n',subjID);
 
 %------- General Setup -------%
 
@@ -63,7 +86,7 @@ else
     fprintf('Set rng using newest method\n')
 end
 
-if isreal
+if do_full
     HideCursor; % remove the cursor so it doesn't just show up on our screen
 end
 
@@ -111,8 +134,15 @@ resp_keys = {'z','m'}; % FIRST entry for selecting left, SECOND entry for select
     % These keys must be listed in order i.e. {left,right}
 resp_key_codes = KbName(resp_keys); % get the key codes for the response keys
 
-
 %------- Specific Study Setup -------%
+
+% Initialize/check TTL setup with three pulses
+if do_TTL
+    for i = 1:3
+        DatapixxAOttl(); % TTL pulse
+        WaitSecs(0.5);
+    end
+end
 
 fname = sprintf('clase_behavior_CLASE%s_%.4f.mat',subjID,now);
 % this will create a unique data file name so that data will not be
@@ -120,7 +150,7 @@ fname = sprintf('clase_behavior_CLASE%s_%.4f.mat',subjID,now);
 
 cs = csvread(choiceset_fullpath,1); %read in the Choice Set
 
-if isreal
+if do_full
     nT = 125; % number of trials for real task
     nB = 5; % Number of blocks those trials are divided into (needs to be a factor of nT)
     triBlockStart = 1:(nT/nB):nT; % the first trial in each block
@@ -196,7 +226,7 @@ try
     DrawFormattedText(wind,'Press either response key to continue.','center',.9*h,wht,40);
     Screen('Flip',wind);
     while 1
-        [keyIsDown,~,keyCode] = KbCheck;
+        [keyIsDown,~,keyCode] = KbCheck(-1);
         if (keyIsDown && size(find(keyCode),2)==1)
             if keyCode(esc_key_code)
                 error('Experiment aborted by user'); % allow aborting the study here
@@ -206,13 +236,13 @@ try
         end
     end
     
-    DrawFormattedText(wind,'Remember that you can only enter your choice by pressing a response key once the ''Z - left    M - right'' prompt comes up on the bottom of the screen.\n\nTo ensure that you can respond in time, please keep one finger on the left key and one on the right key at all times during the task.','center',.1*h,wht,40);
+    DrawFormattedText(wind,'Remember that you can only enter your choice by pressing a response key AFTER the ''Z - left    M - right'' prompt comes up on the bottom of the screen.\n\nTo ensure that you can respond in time, please keep one finger on the left key and one on the right key at all times during the task.','center',.1*h,wht,40);
     Screen('Flip',wind,[],1);
     WaitSecs(1.5);
     DrawFormattedText(wind,'Press either response key to continue.','center',.9*h,wht,40);
     Screen('Flip',wind);
     while 1
-        [keyIsDown,~,keyCode] = KbCheck;
+        [keyIsDown,~,keyCode] = KbCheck(-1);
         if (keyIsDown && size(find(keyCode),2)==1)
             if keyCode(esc_key_code)
                 error('Experiment aborted by user'); % allow aborting the study here
@@ -221,15 +251,14 @@ try
             end
         end
     end
-    
-    %---------------------Practice-----------------------%
-    DrawFormattedText(wind,'If you have any questions, you can ask your experimenter now.\n\n\nIf not, you will now do ten (10) practice trials. These look and work identically to real trials (i.e. timing, dollar values), but do not count!','center',.1*h,wht,40);
+
+    DrawFormattedText(wind,'Please remember to evaluate each choice on its own merits, and to take your choices seriously.','center',.1*h,wht,40);
     Screen('Flip',wind,[],1);
     WaitSecs(1.5);
-    DrawFormattedText(wind,'Press either response key to continue to the practice trials! When you do, there will be a 5 second warning, and then the trials will begin.','center',.75*h,wht,40);
+    DrawFormattedText(wind,'Press either response key to continue.','center',.9*h,wht,40);
     Screen('Flip',wind);
     while 1
-        [keyIsDown,~,keyCode] = KbCheck;
+        [keyIsDown,~,keyCode] = KbCheck(-1);
         if (keyIsDown && size(find(keyCode),2)==1)
             if keyCode(esc_key_code)
                 error('Experiment aborted by user'); % allow aborting the study here
@@ -239,208 +268,266 @@ try
         end
     end
     
-    DrawFormattedText(wind, 'Beginning in 5 seconds...', 'center', 'center', wht,40);
-    Screen('Flip', wind); % update display
-    WaitSecs(4);
-    
-    DrawFormattedText(wind, '+', 'center', 'center', wht,40);
-    Screen('Flip', wind); % update display
-    WaitSecs(1);
-    
-    %--Start practice--%
-    subjdata.practice.studystart = GetSecs; % log the study start time if it's the first trial
-    for t = 1:nTp
-        subjdata.practice.trialStart(t) = GetSecs; %when does the trial start? there will be a slight delay between this and stimStart(t)
-        loc = randperm(2,1); %randomly select location of options on the screen. loc = 1: gamble on left, alternative or right, loc = 2 alt on left, gamble on the right
-        subjdata.practice.loc(t) = loc; %store location
-        %------stimulus presentation---------%
-        %prepare stimulus%
-        Screen('FillOval',wind,wht,[lRect' rRect']); %draw two ovals on the left and right side of the screen
-        if loc == 1
-            Screen('DrawLine', wind, blk, lRect(1),yCenter,lRect(3), yCenter, 5); %draw line in the middle of gamble on left side of screen
-            %place text
-            DrawFormattedText(wind,nicemoneytext(subjdata.practice.riskyGain(t)),'center','center',blk,[],[],[],[],[],[lRect(1) lRect(2) lRect(3) lRect(4)- radius]); %gain text
-            DrawFormattedText(wind,nicemoneytext(subjdata.practice.riskyLoss(t)),'center','center',blk,[],[],[],[],[],[lRect(1) lRect(2)+radius lRect(3) lRect(4)]); %loss text
-            DrawFormattedText(wind,nicemoneytext(subjdata.practice.alternative(t)),'center','center',blk,[],[],[],[],[],rRect); % alt text
-        elseif loc == 2
-            Screen('DrawLine', wind, blk, rRect(1),yCenter, rRect(3), yCenter, 5); % draw line in middle of gamble on right side of screen
-            %place text
-            DrawFormattedText(wind,nicemoneytext(subjdata.practice.alternative(t)),'center','center',blk,[],[],[],[],[],lRect); %alt text
-            DrawFormattedText(wind,nicemoneytext(subjdata.practice.riskyGain(t)),'center','center',blk,[],[],[],[],[],[rRect(1) rRect(2) rRect(3) rRect(4)-radius]); %gain text
-            DrawFormattedText(wind,nicemoneytext(subjdata.practice.riskyLoss(t)),'center','center',blk,[],[],[],[],[],[rRect(1) rRect(2)+radius rRect(3) rRect(4)]); % loss text
-        end
-        DrawFormattedText(wind,'OR','center','center',wht); % place OR between both ovals
-        
-        
-        subjdata.practice.stimStart(t) = Screen('Flip',wind,[],1); %show the stimuli
-        
-        % ready the response period stuff that will show up in the response
-        % collection period
-        DrawFormattedText(wind, 'Z - left','center', 'center',wht,[],[],[],[],[],[lRect(1),lRect(4) lRect(3) lRect(4)+lRect(2)]);
-        DrawFormattedText(wind, 'M - right','center', 'center',wht,[],[],[],[],[],[rRect(1),rRect(4) rRect(3) rRect(4)+rRect(2)]);
-        
-        while GetSecs - subjdata.practice.studystart < t*prestime + (t-1)*(choicetime + isitime + feedbacktime) + sum(ititime(1:(t-1)))
-            [keyIsDown,~,keyCode] = KbCheck;
-            %if keyIsDown
-            if (keyIsDown && size(find(keyCode),2) ==1)
-                if keyCode(esc_key_code)
-                    error('Experiment aborted by user'); % allow aborting during stimulus presentation
-                end
+    DrawFormattedText(wind,'If you have ANY questions, please ask your experimenter now!','center',.1*h,wht,40);
+    Screen('Flip',wind,[],1);
+    WaitSecs(1.5);
+    DrawFormattedText(wind,'Press either response key to continue.','center',.9*h,wht,40);
+    Screen('Flip',wind);
+    while 1
+        [keyIsDown,~,keyCode] = KbCheck(-1);
+        if (keyIsDown && size(find(keyCode),2)==1)
+            if keyCode(esc_key_code)
+                error('Experiment aborted by user'); % allow aborting the study here
+            elseif any(keyCode(resp_key_codes)) % participant can start study when ready
+                break % change screen as soon as they respond
             end
         end
+    end
+
+    %---------------------Practice-----------------------%
+    
+    if do_prac
         
-        %----------response collection-----------%
-        %display keys for choices on screen
-        subjdata.practice.choiceStart(t) = Screen('Flip',wind); % show the v and n on the screen, nows ps can respond
-        
-        while GetSecs - subjdata.practice.studystart < t*(prestime + choicetime) + (t-1)*(isitime + feedbacktime) + sum(ititime(1:(t-1)))
-            [keyIsDown,~,keyCode] = KbCheck;
-            %outp(adOut,1); %send marking pulse
-            %if keyIsDown
-            if (keyIsDown && size(find(keyCode),2) ==1)
+        DrawFormattedText(wind,'You will now do ten (10) practice trials. These look and work identically to real trials (i.e. timing, dollar values), but do not count!','center',.1*h,wht,40);
+        Screen('Flip',wind,[],1);
+        WaitSecs(1.5);
+        DrawFormattedText(wind,'Press BOTH response keys at the SAME time to continue to the practice trials! When you do, there will be a 5 second warning, and then the trials will begin.','center',.75*h,wht,40);
+        Screen('Flip',wind);
+        while 1
+            [keyIsDown,~,keyCode] = KbCheck(-1);
+            if (keyIsDown && size(find(keyCode),2)==2)
                 if keyCode(esc_key_code)
                     error('Experiment aborted by user'); % allow aborting the study here
-                elseif any(keyCode(resp_key_codes)) % IF the pressed key matches a response key...
-                    subjdata.practice.RTs(t) = GetSecs - subjdata.practice.choiceStart(t); % record RT
-                    subjdata.practice.extraTime(t) = choicetime - subjdata.practice.RTs(t); % store the extra time left over once p makes a choice
-                    %subjdata.ts.feedbackdelayStart(t) = GetSecs; %now the isi starts
-                    %outp(adOut,0); % turn off marker - tell biopac that event is over
+                elseif sum(keyCode(resp_key_codes))==2 % participant can start study when ready
                     break % change screen as soon as they respond
                 end
             end
         end
         
+        DrawFormattedText(wind, 'Get ready! Beginning in 5 seconds...', 'center', 'center', wht,40);
+        Screen('Flip', wind); % update display
+        WaitSecs(4);
         
-        %------ISI------%
-        Screen('gluDisk',wind,wht,xCenter,yCenter,3); % make a white dot that will be displayed during ISI
-        subjdata.practice.isiStart(t) = Screen('Flip',wind); %now isi starts
+        DrawFormattedText(wind, '+', 'center', 'center', wht,40);
+        Screen('Flip', wind); % update display
+        WaitSecs(1);
         
-        if any(keyCode(resp_key_codes))
-            subjdata.practice.response{t} = KbName(keyCode); % record response
-            if subjdata.practice.loc(t) == 1 && (find(keyCode(resp_key_codes)) == 1) %if gamble is on the left and p selected v
-                subjdata.practice.choice(t) = 1; % then they gambled
-            elseif subjdata.practice.loc(t) == 2 && (find(keyCode(resp_key_codes)) == 2) % if gamble is on the right and p selected n
-                subjdata.practice.choice(t) = 1; %then they gambled
-            else
-                subjdata.practice.choice(t) = 0; % otherwise they did not gamble
-            end
-        else
-            %subjdata.cs.response{t} = NaN; %did not respond in time
-            subjdata.practice.choice(t) = NaN; %did not respond in time
+        %--Start practice--%
+        subjdata.practice.studystart = GetSecs; % log the study start time if it's the first trial
+        if do_TTL
+            DatapixxAOttl(); % TTL pulse marking start of the practice block
         end
         
-        while GetSecs - subjdata.practice.studystart < t*(prestime+isitime) + min([subjdata.practice.RTs(t) choicetime]) + (t-1)*(choicetime+feedbacktime) + sum(ititime(1:(t-1)));
-            [keyIsDown,~,keyCode] = KbCheck;
-            if (keyIsDown && size(find(keyCode),2) ==1)
-                %if keyIsDown
-                if keyCode(esc_key_code)
-                    error('Experiment aborted by user'); % allow aborting during stimulus presentation
-                end
+        for t = 1:nTp
+            subjdata.practice.trialStart(t) = GetSecs; %when does the trial start? there will be a slight delay between this and stimStart(t)
+            loc = randperm(2,1); %randomly select location of options on the screen. loc = 1: gamble on left, alternative or right, loc = 2 alt on left, gamble on the right
+            subjdata.practice.loc(t) = loc; %store location
+            %------stimulus presentation---------%
+            %prepare stimulus%
+            Screen('FillOval',wind,wht,[lRect' rRect']); %draw two ovals on the left and right side of the screen
+            if loc == 1
+                Screen('DrawLine', wind, blk, lRect(1),yCenter,lRect(3), yCenter, 5); %draw line in the middle of gamble on left side of screen
+                %place text
+                DrawFormattedText(wind,nicemoneytext(subjdata.practice.riskyGain(t)),'center','center',blk,[],[],[],[],[],[lRect(1) lRect(2) lRect(3) lRect(4)- radius]); %gain text
+                DrawFormattedText(wind,nicemoneytext(subjdata.practice.riskyLoss(t)),'center','center',blk,[],[],[],[],[],[lRect(1) lRect(2)+radius lRect(3) lRect(4)]); %loss text
+                DrawFormattedText(wind,nicemoneytext(subjdata.practice.alternative(t)),'center','center',blk,[],[],[],[],[],rRect); % alt text
+            elseif loc == 2
+                Screen('DrawLine', wind, blk, rRect(1),yCenter, rRect(3), yCenter, 5); % draw line in middle of gamble on right side of screen
+                %place text
+                DrawFormattedText(wind,nicemoneytext(subjdata.practice.alternative(t)),'center','center',blk,[],[],[],[],[],lRect); %alt text
+                DrawFormattedText(wind,nicemoneytext(subjdata.practice.riskyGain(t)),'center','center',blk,[],[],[],[],[],[rRect(1) rRect(2) rRect(3) rRect(4)-radius]); %gain text
+                DrawFormattedText(wind,nicemoneytext(subjdata.practice.riskyLoss(t)),'center','center',blk,[],[],[],[],[],[rRect(1) rRect(2)+radius rRect(3) rRect(4)]); % loss text
             end
-        end
-        
-        %-----FEEDBACK-----%
-        
-        % prepare feedback stimulus during ISI
-        if ~isnan(subjdata.practice.choice(t))
-            if subjdata.practice.choice(t) == 1 %if gamble taken
-                OC = randi(2,1); % generate a random number, 1 or 2; if 1, outcome is gain. if 2, outcome is loss
-                if OC == 1 %if OC is 1, gain is outcome
-                    subjdata.practice.outcome(t) = subjdata.practice.riskyGain(t); %store gain amount
-                    if loc == 1 %if gamble is on left
-                        Screen('FillArc',wind,wht,lRect,270,180); %display gain amount on left
-                        DrawFormattedText(wind,nicemoneytext(subjdata.practice.riskyGain(t)),'center','center',blk,[],[],[],[],[],[lRect(1) lRect(2) lRect(3) lRect(4)-radius]);
-                    elseif loc ==2 % if gamble is on the right
-                        Screen('FillArc',wind,wht,rRect,270,180); %display gain amount on right
-                        DrawFormattedText(wind,nicemoneytext(subjdata.practice.riskyGain(t)),'center','center',blk,[],[],[],[],[],[rRect(1) rRect(2) rRect(3) rRect(4)-radius]);
-                    end
-                elseif OC ==2  %if OC is 2, loss is the outcome
-                    subjdata.practice.outcome(t) = subjdata.practice.riskyLoss(t); % store loss amount
-                    if loc ==1 %if gamble is on the right
-                        subjdata.practice.outcome(t) = subjdata.practice.riskyLoss(t); % store loss amount
-                        Screen('FillArc',wind,wht,lRect,90,180); %display outcome
-                        DrawFormattedText(wind,nicemoneytext(subjdata.practice.riskyLoss(t)),'center','center',blk,[],[],[],[],[],[lRect(1) lRect(2)+radius lRect(3) lRect(4)]);
-                    elseif loc == 2 % if
-                        Screen('FillArc',wind,wht,rRect,90,180);
-                        DrawFormattedText(wind,nicemoneytext(subjdata.practice.riskyLoss(t)),'center','center',blk,[],[],[],[],[],[rRect(1) rRect(2)+radius rRect(3) rRect(4)]);
-                    end
-                end
-            else
-                subjdata.practice.outcome(t) = subjdata.practice.alternative(t); %store alt amount
-                if loc == 1 %if alt is on the right side of screen
-                    Screen('FillOval', wind, wht,rRect);
-                    DrawFormattedText(wind,nicemoneytext(subjdata.practice.alternative(t)),'center','center',blk,[],[],[],[],[],rRect);
-                else
-                    
-                    Screen('FillOval', wind, wht,lRect);
-                    DrawFormattedText(wind,nicemoneytext(subjdata.practice.alternative(t)),'center','center',blk,[],[],[],[],[],lRect);
-                end
-            end
-        else
-            DrawFormattedText(wind,'You did not respond in time','center','center', wht, 40);
-            subjdata.practice.outcome(t) = NaN;
+            DrawFormattedText(wind,'OR','center','center',wht); % place OR between both ovals
             
-        end % end this feedback for loop; now feedback has been prepped and is ready to be displayed when isi is over
-        
-        
-        subjdata.practice.otcStart(t) =  Screen('Flip',wind); % show feedback
-        
-        
-        Screen('gluDisk',wind,wht,xCenter,yCenter,3); % make a white dot that will be displayed during iti
-        
-        
-        while GetSecs - subjdata.practice.studystart < t*(prestime + isitime + feedbacktime) + (t-1)*(choicetime) + sum(ititime(1:(t-1))) + min([subjdata.practice.RTs(t) choicetime])
-            [keyIsDown,~,keyCode] = KbCheck;
-            if (keyIsDown && size(find(keyCode),2) ==1)
+            
+            subjdata.practice.stimStart(t) = Screen('Flip',wind,[],1); %show the stimuli
+            if do_TTL
+                DatapixxAOttl(); % TTL pulse marking start of option presentation
+            end
+            
+            % ready the response period stuff that will show up in the response
+            % collection period
+            DrawFormattedText(wind, 'Z - left','center', 'center',wht,[],[],[],[],[],[lRect(1),lRect(4) lRect(3) lRect(4)+lRect(2)]);
+            DrawFormattedText(wind, 'M - right','center', 'center',wht,[],[],[],[],[],[rRect(1),rRect(4) rRect(3) rRect(4)+rRect(2)]);
+            
+            while GetSecs - subjdata.practice.studystart < t*prestime + (t-1)*(choicetime + isitime + feedbacktime) + sum(ititime(1:(t-1)))
+                [keyIsDown,~,keyCode] = KbCheck(-1);
                 %if keyIsDown
+                if (keyIsDown && size(find(keyCode),2) ==1)
+                    if keyCode(esc_key_code)
+                        error('Experiment aborted by user'); % allow aborting during stimulus presentation
+                    end
+                end
+            end
+            
+            %----------response collection-----------%
+            %display keys for choices on screen
+            subjdata.practice.choiceStart(t) = Screen('Flip',wind); % show the v and n on the screen, nows ps can respond
+            if do_TTL
+                DatapixxAOttl(); % TTL pulse marking start of response window
+            end
+            
+            while GetSecs - subjdata.practice.studystart < t*(prestime + choicetime) + (t-1)*(isitime + feedbacktime) + sum(ititime(1:(t-1)))
+                [keyIsDown,~,keyCode] = KbCheck(-1);
+                %outp(adOut,1); %send marking pulse
+                %if keyIsDown
+                if (keyIsDown && size(find(keyCode),2) ==1)
+                    if keyCode(esc_key_code)
+                        error('Experiment aborted by user'); % allow aborting the study here
+                    elseif any(keyCode(resp_key_codes)) % IF the pressed key matches a response key...
+                        subjdata.practice.RTs(t) = GetSecs - subjdata.practice.choiceStart(t); % record RT
+                        subjdata.practice.extraTime(t) = choicetime - subjdata.practice.RTs(t); % store the extra time left over once p makes a choice
+                        %subjdata.ts.feedbackdelayStart(t) = GetSecs; %now the isi starts
+                        %outp(adOut,0); % turn off marker - tell biopac that event is over
+                        break % change screen as soon as they respond
+                    end
+                end
+            end
+            
+            
+            %------ISI------%
+            Screen('gluDisk',wind,wht,xCenter,yCenter,3); % make a white dot that will be displayed during ISI
+            subjdata.practice.isiStart(t) = Screen('Flip',wind); %now isi starts
+            if do_TTL
+                DatapixxAOttl(); % TTL pulse marking start of ISI
+            end
+            
+            if any(keyCode(resp_key_codes))
+                subjdata.practice.response{t} = KbName(keyCode); % record response
+                if subjdata.practice.loc(t) == 1 && (find(keyCode(resp_key_codes)) == 1) %if gamble is on the left and p selected v
+                    subjdata.practice.choice(t) = 1; % then they gambled
+                elseif subjdata.practice.loc(t) == 2 && (find(keyCode(resp_key_codes)) == 2) % if gamble is on the right and p selected n
+                    subjdata.practice.choice(t) = 1; %then they gambled
+                else
+                    subjdata.practice.choice(t) = 0; % otherwise they did not gamble
+                end
+            else
+                %subjdata.cs.response{t} = NaN; %did not respond in time
+                subjdata.practice.choice(t) = NaN; %did not respond in time
+            end
+            
+            while GetSecs - subjdata.practice.studystart < t*(prestime+isitime) + min([subjdata.practice.RTs(t) choicetime]) + (t-1)*(choicetime+feedbacktime) + sum(ititime(1:(t-1)));
+                [keyIsDown,~,keyCode] = KbCheck(-1);
+                if (keyIsDown && size(find(keyCode),2) ==1)
+                    %if keyIsDown
+                    if keyCode(esc_key_code)
+                        error('Experiment aborted by user'); % allow aborting during stimulus presentation
+                    end
+                end
+            end
+            
+            %-----FEEDBACK-----%
+            
+            % prepare feedback stimulus during ISI
+            if ~isnan(subjdata.practice.choice(t))
+                if subjdata.practice.choice(t) == 1 %if gamble taken
+                    OC = randi(2,1); % generate a random number, 1 or 2; if 1, outcome is gain. if 2, outcome is loss
+                    if OC == 1 %if OC is 1, gain is outcome
+                        subjdata.practice.outcome(t) = subjdata.practice.riskyGain(t); %store gain amount
+                        if loc == 1 %if gamble is on left
+                            Screen('FillArc',wind,wht,lRect,270,180); %display gain amount on left
+                            DrawFormattedText(wind,nicemoneytext(subjdata.practice.riskyGain(t)),'center','center',blk,[],[],[],[],[],[lRect(1) lRect(2) lRect(3) lRect(4)-radius]);
+                        elseif loc ==2 % if gamble is on the right
+                            Screen('FillArc',wind,wht,rRect,270,180); %display gain amount on right
+                            DrawFormattedText(wind,nicemoneytext(subjdata.practice.riskyGain(t)),'center','center',blk,[],[],[],[],[],[rRect(1) rRect(2) rRect(3) rRect(4)-radius]);
+                        end
+                    elseif OC ==2  %if OC is 2, loss is the outcome
+                        subjdata.practice.outcome(t) = subjdata.practice.riskyLoss(t); % store loss amount
+                        if loc ==1 %if gamble is on the right
+                            subjdata.practice.outcome(t) = subjdata.practice.riskyLoss(t); % store loss amount
+                            Screen('FillArc',wind,wht,lRect,90,180); %display outcome
+                            DrawFormattedText(wind,nicemoneytext(subjdata.practice.riskyLoss(t)),'center','center',blk,[],[],[],[],[],[lRect(1) lRect(2)+radius lRect(3) lRect(4)]);
+                        elseif loc == 2 % if
+                            Screen('FillArc',wind,wht,rRect,90,180);
+                            DrawFormattedText(wind,nicemoneytext(subjdata.practice.riskyLoss(t)),'center','center',blk,[],[],[],[],[],[rRect(1) rRect(2)+radius rRect(3) rRect(4)]);
+                        end
+                    end
+                else
+                    subjdata.practice.outcome(t) = subjdata.practice.alternative(t); %store alt amount
+                    if loc == 1 %if alt is on the right side of screen
+                        Screen('FillOval', wind, wht,rRect);
+                        DrawFormattedText(wind,nicemoneytext(subjdata.practice.alternative(t)),'center','center',blk,[],[],[],[],[],rRect);
+                    else
+                        
+                        Screen('FillOval', wind, wht,lRect);
+                        DrawFormattedText(wind,nicemoneytext(subjdata.practice.alternative(t)),'center','center',blk,[],[],[],[],[],lRect);
+                    end
+                end
+            else
+                DrawFormattedText(wind,'You did not respond in time','center','center', wht, 40);
+                subjdata.practice.outcome(t) = NaN;
+                
+            end % end this feedback for loop; now feedback has been prepped and is ready to be displayed when isi is over
+            
+            
+            subjdata.practice.otcStart(t) =  Screen('Flip',wind); % show feedback
+            if do_TTL
+                DatapixxAOttl(); % TTL pulse marking outcome presentation
+            end
+            
+            Screen('gluDisk',wind,wht,xCenter,yCenter,3); % make a white dot that will be displayed during iti
+            
+            
+            while GetSecs - subjdata.practice.studystart < t*(prestime + isitime + feedbacktime) + (t-1)*(choicetime) + sum(ititime(1:(t-1))) + min([subjdata.practice.RTs(t) choicetime])
+                [keyIsDown,~,keyCode] = KbCheck(-1);
+                if (keyIsDown && size(find(keyCode),2) ==1)
+                    %if keyIsDown
+                    if keyCode(esc_key_code)
+                        error('Experiment aborted by user'); % allow experiment aborting here
+                    end
+                end
+            end
+            
+            
+            %subjdata.ts.otcEnd(t) = GetSecs; % end of outcome display
+            
+            % ------ ITI ------ %
+            
+            subjdata.practice.itiStart(t) = Screen('Flip',wind); %show white dot on the screen
+            if do_TTL
+                DatapixxAOttl(); % TTL pulse marking start of ITI
+            end
+            
+            %fprintf(fid,'riskyGain %0.2f, safe, %0.2f, loc, %g, choice, %g, outcome, %0.2f, RT, %0.2f, ISI, %g, ITI, %g\n', subjdata.practice.riskyGain(t),subjdata.practice.alternative(t),subjdata.practice.loc(t), subjdata.practice.choice(t), subjdata.practice.outcome(t), subjdata.practice.RTs(t)); %save txt file of what we have
+            save(fname,'subjdata'); % save what data we have
+            
+            %wait a certain amount of time until iti ends
+            while GetSecs - subjdata.practice.studystart < t*(prestime + isitime + choicetime + feedbacktime) + sum(ititime(1:t))  % control the entire experiment length on a per-trial basis
+                [keyIsDown,~,keyCode] = KbCheck(-1);
+                if (keyIsDown && size(find(keyCode),2) ==1)
+                    %if keyIsDown
+                    if keyCode(esc_key_code)
+                        error('Experiment aborted by user'); % allow experiment aborting here
+                    end
+                end
+            end
+            
+        end %ends the loop for the practice trials.
+        
+        subjdata.practice.studystop = GetSecs; % mark the end-time
+        if do_TTL
+            DatapixxAOttl(); % TTL pulse marking end of practice block
+        end
+        
+        DrawFormattedText(wind,'You have completed the practice!\n\n\n If you have any questions, please ask the experimenter now!','center','center', wht, 40);
+        DrawFormattedText(wind,'Waiting for the experimenter.','center',.9*h, wht, 40);
+        Screen('Flip',wind);
+        WaitSecs(2);
+        while 1
+            [keyIsDown,~,keyCode] = KbCheck(-1);
+            if (keyIsDown && size(find(keyCode),2) ==1)
                 if keyCode(esc_key_code)
-                    error('Experiment aborted by user'); % allow experiment aborting here
+                    error('Experiment aborted by user'); % allow aborting the study here
+                elseif any(keyCode(continue_key_code)) % participant can start study when ready
+                    break % change screen as soon as they respond
                 end
             end
         end
+        Screen('Flip',wind);
+        WaitSecs(1);
         
-        
-        %subjdata.ts.otcEnd(t) = GetSecs; % end of outcome display
-        
-        % ------ ITI ------ %
-        
-        subjdata.practice.itiStart(t) = Screen('Flip',wind); %show white dot on the screen
-        
-        %fprintf(fid,'riskyGain %0.2f, safe, %0.2f, loc, %g, choice, %g, outcome, %0.2f, RT, %0.2f, ISI, %g, ITI, %g\n', subjdata.practice.riskyGain(t),subjdata.practice.alternative(t),subjdata.practice.loc(t), subjdata.practice.choice(t), subjdata.practice.outcome(t), subjdata.practice.RTs(t)); %save txt file of what we have
-        save(fname,'subjdata'); % save what data we have
-        
-        %wait a certain amount of time until iti ends
-        while GetSecs - subjdata.practice.studystart < t*(prestime + isitime + choicetime + feedbacktime) + sum(ititime(1:t))  % control the entire experiment length on a per-trial basis
-            [keyIsDown,~,keyCode] = KbCheck;
-            if (keyIsDown && size(find(keyCode),2) ==1)
-                %if keyIsDown
-                if keyCode(esc_key_code)
-                    error('Experiment aborted by user'); % allow experiment aborting here
-                end
-            end
-        end
-        
-    end %ends the loop for the practice trials.
-    
-    subjdata.practice.studystop = GetSecs; % mark the end-time
-    
-    
-    DrawFormattedText(wind,'You have completed the practice!\n\n\n If you have any questions, please ask the experimenter now!','center','center', wht, 40);
-    DrawFormattedText(wind,'Waiting for the experimenter.','center',.9*h, wht, 40);
-    Screen('Flip',wind);
-    WaitSecs(2);
-    while 1
-        [keyIsDown,~,keyCode] = KbCheck;
-        if (keyIsDown && size(find(keyCode),2) ==1)
-            if keyCode(esc_key_code)
-                error('Experiment aborted by user'); % allow aborting the study here
-            elseif any(keyCode(continue_key_code)) % participant can start study when ready
-                break % change screen as soon as they respond
-            end
-        end
     end
-    Screen('Flip',wind);
-    WaitSecs(1);
 
     % Once we are ready to start a block, show waiting for experimenter screen:
     DrawFormattedText(wind, 'Computer ready.', 'center', 'center', wht,40);
@@ -448,7 +535,7 @@ try
     Screen('Flip', wind); % update display to show break_message
     WaitSecs(1);
     while 1
-        [keyIsDown,~,keyCode] = KbCheck;
+        [keyIsDown,~,keyCode] = KbCheck(-1);
         if (keyIsDown && size(find(keyCode),2) ==1)
             if keyCode(esc_key_code)
                 error('Experiment aborted by user'); % allow aborting the study here
@@ -460,20 +547,20 @@ try
     Screen('Flip',wind);
     WaitSecs(1);
     
-    DrawFormattedText(wind,'You''re ready to begin the main task.\n\n\nPress either response key to begin!','center','center',wht,40);
+    DrawFormattedText(wind,'You''re ready to begin the main task.\n\n\nPress BOTH response keys at the SAME TIME to begin!','center','center',wht,40);
     Screen('Flip',wind);
     while 1
-        [keyIsDown,~,keyCode] = KbCheck;
-        if (keyIsDown && size(find(keyCode),2)==1)
+        [keyIsDown,~,keyCode] = KbCheck(-1);
+        if (keyIsDown && size(find(keyCode),2)==2)
             if keyCode(esc_key_code)
                 error('Experiment aborted by user'); % allow aborting the study here
-            elseif any(keyCode(resp_key_codes)) % participant can start study when ready
+            elseif sum(keyCode(resp_key_codes))==2 % participant can start study when ready
                 break % change screen as soon as they respond
             end
         end
     end
 
-    DrawFormattedText(wind, 'Beginning in 5 seconds...', 'center', 'center', wht,40);
+    DrawFormattedText(wind, 'Get ready! Beginning in 5 seconds...', 'center', 'center', wht,40);
     Screen('Flip', wind); % update display
     WaitSecs(4);
     
@@ -483,7 +570,9 @@ try
     
     %Now the real task can begin!
     
-    DatapixxAOttl(); % TTL pulse marking start of the actual study
+    if do_TTL
+        DatapixxAOttl(); % TTL pulse marking start of the actual study
+    end
     subjdata.ts.studystart = GetSecs; % log the study start time
     b = 1;
     triStart = 1;
@@ -491,7 +580,7 @@ try
     
     for t = triStart:nT
         
-        if isreal
+        if do_full
             triBlock = subjdata.cs.triBlock(t);
         else
             triBlock = testTriBlock(t);
@@ -505,7 +594,7 @@ try
             subjdata.ts.blockBreakStart(b) = GetSecs;
             WaitSecs(1);
             while (GetSecs - subjdata.ts.blockBreakStart(b)) < 29
-                [keyIsDown,~,keyCode] = KbCheck;
+                [keyIsDown,~,keyCode] = KbCheck(-1);
                 if (keyIsDown && size(find(keyCode),2) ==1)
                     if keyCode(esc_key_code)
                         error('Experiment aborted by user'); % allow aborting the study here
@@ -529,14 +618,12 @@ try
         subjdata.ts.trialStart(t) = GetSecs;
         
         %store the start of each block as when the first trial starts
-        if t == triBlockStart(1)
-            subjdata.ts.blockStart(1) = subjdata.ts.trialStart(t);
-        elseif t == triBlockStart(2)
-            subjdata.ts.blockStart(2) = subjdata.ts.trialStart(t);
-        elseif t == triBlockStart(3)
-            subjdata.ts.blockStart(3) = subjdata.ts.trialStart(t);
+        for blockNum = 1:nB
+            if t == triBlockStart(blockNum)
+                subjdata.ts.blockStart(blockNum) = subjdata.ts.trialStart(t);
+            end
         end
-        
+                
         loc = randperm(2,1); %randomly select location of options on the screen. loc = 1: gamble on left, alternative or right, loc = 2 alt on left, gamble on the right
         subjdata.cs.loc(t) = loc; %store location
         %------stimulus presentation---------%
@@ -557,8 +644,10 @@ try
         end
         DrawFormattedText(wind,'OR','center','center',wht); % place OR between both ovals
         
-        DatapixxAOttl(); % TTL pulse marking screen flip that shows choice options
         subjdata.ts.stimStart(t) = Screen('Flip',wind,[],1); %show the stimuli
+        if do_TTL
+            DatapixxAOttl(); % TTL pulse marking screen flip that shows choice options
+        end
         
         % ready the response period stuff that will show up in the response
         % collection period
@@ -566,7 +655,7 @@ try
         DrawFormattedText(wind, 'M - right','center', 'center',wht,[],[],[],[],[],[rRect(1),rRect(4) rRect(3) rRect(4)+rRect(2)]);
         
         while GetSecs - subjdata.ts.blockStart(b) < triBlock*(prestime) + (triBlock-1)*(isitime + choicetime + feedbacktime) + sum(ititime(triBlockStart(b):(t-1)))
-            [keyIsDown,~,keyCode] = KbCheck;
+            [keyIsDown,~,keyCode] = KbCheck(-1);
             if (keyIsDown && size(find(keyCode),2) ==1)
                 if keyCode(esc_key_code)
                     error('Experiment aborted by user'); % allow aborting during stimulus presentation
@@ -576,11 +665,13 @@ try
         
         %----------response collection-----------%
         %display keys for choices on screen
-        DatapixxAOttl(); % TTL pulse marking start of the response window
         subjdata.ts.choiceStart(t) = Screen('Flip',wind); % show the v and n on the screen, nows ps can respond
+        if do_TTL
+            DatapixxAOttl(); % TTL pulse marking start of the response window
+        end
         
         while GetSecs - subjdata.ts.blockStart(b) < triBlock*(prestime + choicetime) + (triBlock-1)*(isitime + feedbacktime) + sum(ititime(triBlockStart(b):(t-1)))
-            [keyIsDown,~,keyCode] = KbCheck;
+            [keyIsDown,~,keyCode] = KbCheck(-1);
             %outp(adOut,1); %send marking pulse
             if (keyIsDown && size(find(keyCode),2) ==1)
                 if keyCode(esc_key_code)
@@ -597,8 +688,10 @@ try
         
         %------ISI------%
         Screen('gluDisk',wind,wht,xCenter,yCenter,3); % make a white dot that will be displayed during ISI
-        DatapixxAOttl(); % TTL pulse marking end of the response window (due to button press OR expiration of time
         subjdata.ts.isiStart(t) = Screen('Flip',wind); %now isi starts
+        if do_TTL
+            DatapixxAOttl(); % TTL pulse marking end of the response window (due to button press OR expiration of time            
+        end
         
         if any(keyCode(resp_key_codes))
             subjdata.cs.response{t} = KbName(keyCode); % record response
@@ -616,7 +709,7 @@ try
         
         
         while GetSecs - subjdata.ts.blockStart(b) < triBlock*(prestime + isitime) + min([subjdata.cs.RTs(t) choicetime]) + (triBlock-1)*(choicetime+feedbacktime) + sum(ititime(triBlockStart(b):(t-1)))
-            [keyIsDown,~,keyCode] = KbCheck;
+            [keyIsDown,~,keyCode] = KbCheck(-1);
             if (keyIsDown && size(find(keyCode),2) ==1)
                 %if keyIsDown
                 if keyCode(esc_key_code)
@@ -669,14 +762,16 @@ try
             
         end % end this feedback for loop; now feedback has been prepped and is ready to be displayed when isi is over
         
-        DatapixxAOttl(); % TTL pulse marking start of the outcome epoch
         subjdata.ts.otcStart(t) =  Screen('Flip',wind); % show feedback
+        if do_TTL
+            DatapixxAOttl(); % TTL pulse marking start of the outcome epoch
+        end
         
         Screen('gluDisk',wind,wht,xCenter,yCenter,3); % make a white dot that will be displayed during iti
         
         
         while GetSecs - subjdata.ts.blockStart(b) < triBlock*(prestime + isitime + feedbacktime) + (triBlock-1)*(choicetime) + sum(ititime(triBlockStart(b):(t-1))) + min([subjdata.cs.RTs(t) choicetime])
-            [keyIsDown,~,keyCode] = KbCheck;
+            [keyIsDown,~,keyCode] = KbCheck(-1);
             if (keyIsDown && size(find(keyCode),2) ==1)
                 %if keyIsDown
                 if keyCode(esc_key_code)
@@ -690,9 +785,10 @@ try
         
         % ------ ITI ------ %
         
-        DatapixxAOttl(); % TTL pulse marking end of outcome epoch
         subjdata.ts.itiStart(t) = Screen('Flip',wind); %show white dot on the screen
-        
+        if do_TTL
+            DatapixxAOttl(); % TTL pulse marking end of outcome epoch
+        end
         
         fprintf(fid,'riskyGain %0.2f, riskyLoss %0.2f, safe, %0.2f, loc, %g, choice, %g, outcome, %0.2f, RT, %0.2f, ISI, %g, ITI, %g, trial, %g, block, %g, triBlock, %g\n', ...
             subjdata.cs.riskyGain(t), subjdata.cs.riskyLoss(t), subjdata.cs.alternative(t),subjdata.cs.loc(t), subjdata.cs.choice(t), subjdata.cs.outcome(t), subjdata.cs.RTs(t), subjdata.params.feedbackdelay, subjdata.params.ititime(t),t,b,triBlock); %save txt file of what we have
@@ -700,7 +796,7 @@ try
         
         %wait a certain amount of time until iti ends
         while GetSecs - subjdata.ts.blockStart(b) < triBlock*(prestime + isitime + choicetime + feedbacktime) + sum(ititime(triBlockStart(b):t))
-            [keyIsDown,~,keyCode] = KbCheck;
+            [keyIsDown,~,keyCode] = KbCheck(-1);
             if (keyIsDown && size(find(keyCode),2) ==1)
                 if keyCode(esc_key_code)
                     error('Experiment aborted by user'); % allow experiment aborting here
@@ -710,8 +806,10 @@ try
         
     end %for t = triStart:nT
     
-    DatapixxAOttl(); % TTL pulse marking end of the study
     subjdata.ts.studystop = GetSecs; % mark the end-time
+    if do_TTL
+        DatapixxAOttl(); % TTL pulse marking end of the study
+    end
     
     %---Outcome selection and wrap up---%
     DrawFormattedText(wind,'Task Complete!','center','center',wht,40); % put up a screen placeholder
@@ -732,7 +830,7 @@ try
     Screen('Flip', wind);
     WaitSecs(1);
     while keyCode(continue_key_code) == 0 % wait for experimenter to press space bar
-        [keyIsDown,~,keyCode] = KbCheck;
+        [keyIsDown,~,keyCode] = KbCheck(-1);
         if (keyIsDown && size(find(keyCode),2) ==1)
             if keyCode(esc_key_code)
                 error('Experiment aborted by user'); % allow aborting the study here
