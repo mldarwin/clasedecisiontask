@@ -215,6 +215,8 @@ subjdata.practice.response = cell(nTp,1);
 subjdata.practice.RTs = nan(nTp,1);
 
 fid = fopen(sprintf('clase_behavior_CLASE%s_%.4f.txt',subjID,now),'w'); % open a new text file, set it to "write" status
+fprintf(fid,'riskygain, riskyloss, certainalternative, loc, choice, outcome, RT, ISI, ITI, trial, block, triBlock, subjID\n'); % Make the header row
+
 
 % The start of the script will be different depending on reStart input
 
@@ -790,8 +792,11 @@ try
             DatapixxAOttl(); % TTL pulse marking end of outcome epoch
         end
         
-        fprintf(fid,'riskyGain %0.2f, riskyLoss %0.2f, safe, %0.2f, loc, %g, choice, %g, outcome, %0.2f, RT, %0.2f, ISI, %g, ITI, %g, trial, %g, block, %g, triBlock, %g\n', ...
-            subjdata.cs.riskyGain(t), subjdata.cs.riskyLoss(t), subjdata.cs.alternative(t),subjdata.cs.loc(t), subjdata.cs.choice(t), subjdata.cs.outcome(t), subjdata.cs.RTs(t), subjdata.params.feedbackdelay, subjdata.params.ititime(t),t,b,triBlock); %save txt file of what we have
+        fprintf(fid,'%0.2f, %0.2f, %0.2f, %g, %g, %0.2f, %0.2f, %g, %g, %g, %g, %g, %s\n', ...
+            subjdata.cs.riskyGain(t), subjdata.cs.riskyLoss(t), subjdata.cs.alternative(t), ...
+            subjdata.cs.loc(t), subjdata.cs.choice(t), subjdata.cs.outcome(t), subjdata.cs.RTs(t), ...
+            subjdata.params.feedbackdelay, subjdata.params.ititime(t), ...
+            t, b, triBlock, subjID); %save txt file of what we have
         save(fname,'subjdata'); % save what data we have
         
         %wait a certain amount of time until iti ends
