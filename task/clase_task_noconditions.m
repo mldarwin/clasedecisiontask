@@ -33,7 +33,7 @@ function [subjdata] = clase_task_noconditions(subjID, do_full, do_TTL, do_prac)
 %     cd(homepath);
 % catch
     homepath = pwd;
-    choiceset_fullpath = '../choice_set/novel_choiceset_creation/clasechoiceset_N125_gainloss_gainonly.csv';
+    choiceset_fullpath = '../choice_set/novel_choiceset_creation/clasechoiceset_N135_gainloss_gainonly.csv';
     cd(homepath);
 % end
 
@@ -151,7 +151,7 @@ fname = sprintf('clase_behavior_CLASE%s_%.4f.mat',subjID,now);
 cs = csvread(choiceset_fullpath,1); %read in the Choice Set
 
 if do_full
-    nT = 125; % number of trials for real task
+    nT = size(cs,1); % number of trials for real task (must be divisible by 5!)
     nB = 5; % Number of blocks those trials are divided into (needs to be a factor of nT)
     triBlockStart = 1:(nT/nB):nT; % the first trial in each block
     subjdata.cs.triBlock = repmat(1:(nT/nB),1,nB); % trial numbers within-block
@@ -185,6 +185,7 @@ subjdata.nT = nT; % number of trials
 subjdata.cs.riskyGain = cs(:,1); % store the choiceset: risky gain
 subjdata.cs.riskyLoss = cs(:,2); % store the choiceset: risky loss
 subjdata.cs.alternative = cs(:,3); % store the choiceset: guaranteed alternative
+subjdata.cs.ischecktrial = cs(:,4); % store the identifier for whether it was a check trial or not
 subjdata.cs.choice = nan(size(cs,1),1); % used size of cs instead of nT for testing purposes when nT = 6
 subjdata.cs.outcome = nan(size(cs,1),1);
 subjdata.cs.loc = nan(size(cs,1),1);% what side of the screen were gamble and alt presented;loc = 1: gamble on left, alternative or right, loc = 2 alt on left, gamble on the right
@@ -215,7 +216,7 @@ subjdata.practice.response = cell(nTp,1);
 subjdata.practice.RTs = nan(nTp,1);
 
 fid = fopen(sprintf('clase_behavior_CLASE%s_%.4f.txt',subjID,now),'w'); % open a new text file, set it to "write" status
-fprintf(fid,'riskygain, riskyloss, certainalternative, loc, choice, outcome, RT, ISI, ITI, trial, block, triBlock, subjID\n'); % Make the header row
+fprintf(fid,'riskygain, riskyloss, certainalternative, ischecktrial, loc, choice, outcome, RT, ISI, ITI, trial, block, triBlock, subjID\n'); % Make the header row
 
 
 % The start of the script will be different depending on reStart input
@@ -792,8 +793,8 @@ try
             DatapixxAOttl(); % TTL pulse marking end of outcome epoch
         end
         
-        fprintf(fid,'%0.2f, %0.2f, %0.2f, %g, %g, %0.2f, %0.2f, %g, %g, %g, %g, %g, %s\n', ...
-            subjdata.cs.riskyGain(t), subjdata.cs.riskyLoss(t), subjdata.cs.alternative(t), ...
+        fprintf(fid,'%0.2f, %0.2f, %0.2f, %g, %g, %g, %0.2f, %0.2f, %g, %g, %g, %g, %g, %s\n', ...
+            subjdata.cs.riskyGain(t), subjdata.cs.riskyLoss(t), subjdata.cs.alternative(t), subjdata.cs.ischecktrial, ...
             subjdata.cs.loc(t), subjdata.cs.choice(t), subjdata.cs.outcome(t), subjdata.cs.RTs(t), ...
             subjdata.params.feedbackdelay, subjdata.params.ititime(t), ...
             t, b, triBlock, subjID); %save txt file of what we have
