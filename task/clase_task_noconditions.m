@@ -178,6 +178,7 @@ cs = cs(randperm(size(cs,1),nT),:); % randomly sort the right # of trials
 % Column 1: risky gain
 % Column 2: risky loss
 % Column 3: certain alternative
+% Column 4: is check trial (1 = is check trial, 0 = not)
 
 % Prep the struct which we'll eventually save out with all the study data
 subjdata.subjID = subjID; % subject ID
@@ -215,7 +216,7 @@ subjdata.practice.loc = nan(nTp,1);% what side of the screen were gamble and alt
 subjdata.practice.response = cell(nTp,1);
 subjdata.practice.RTs = nan(nTp,1);
 
-fid = fopen(sprintf('clase_behavior_CLASE%s_%.4f.txt',subjID,now),'w'); % open a new text file, set it to "write" status
+fid = fopen(sprintf('clase_behavior_CLASE%s_%.4f.csv',subjID,now),'w'); % open a new text file, set it to "write" status
 fprintf(fid,'riskygain, riskyloss, certainalternative, ischecktrial, loc, choice, outcome, RT, ISI, ITI, trial, block, triBlock, subjID\n'); % Make the header row
 
 

@@ -3,6 +3,7 @@
 source('./choice_probability.R');
 source('./binary_choice_from_probability.R')
 source('./negLLprospect.R');
+source('./check_trial_analysis.R');
 library('ggplot2')
 library('doParallel')
 library('foreach')
@@ -15,11 +16,11 @@ iterations_per_estimation = 100; # how many times to perform the maximum likelih
 
 # Configure this for the system it's being used on
 datapath = '~/Documents/Dropbox/Academics/Research/CLASE Project 2021/data/'; # DATA PATH FOR PSH
-fn = dir(datapath,pattern = glob2rx('clase*txt'),full.names = T);
+fn = dir(datapath,pattern = glob2rx('clase*csv'),full.names = T);
 number_of_subjects = length(fn)
 
 #### Get the data ####
-data = as.data.frame(matrix(data = NA, nrow = 0, ncol = 13))
+data = as.data.frame(matrix(data = NA, nrow = 0, ncol = 14))
 
 for(i in 1:number_of_subjects){
   tmpf = read.csv(fn[i]);
@@ -27,6 +28,8 @@ for(i in 1:number_of_subjects){
 }
 
 subjIDs = unique(data$subjID);
+
+likelihood_correct_check_trial = array(dim = c(number_of_subjects,1));
 
 #### Initialize estimation procedure ####
 set.seed(Sys.time()); # Estimation procedure is sensitive to starting values
@@ -63,8 +66,10 @@ for (subject in 1:number_of_subjects){
   tmpdata <- data[ind,]; # remove rows with NAs (missed choices) from estimation
   choiceset = tmpdata[, 1:3];
   choices = tmpdata$choice;
-
-  print(sprintf('Subject %03i missed %i trials',subjIDs[subject],0+sum((data$subjID == subjIDs[subject]) & is.na(data$choice))))
+  
+  likelihood_correct_check_trial[subject] = check_trial_analysis(tmpdata);
+  
+  print(sprintf('Subject %03i missed %i trials; had a %.2f likelihood of correctly answering check trials.',subjIDs[subject],0+sum((data$subjID == subjIDs[subject]) & is.na(data$choice)),likelihood_correct_check_trial[subject]),quote = F)
 
   # Placeholders for all the iterations of estimation we're doing
   all_estimates = matrix(nrow = iterations_per_estimation, ncol = number_of_parameters);
