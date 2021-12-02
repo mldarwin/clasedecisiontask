@@ -244,8 +244,9 @@ plot_recoveredlambda = ggplot(data=parameters_df, aes(x = lambda, y = recovered_
   geom_point(alpha = 0.1, size=10) + 
   geom_segment(aes(x = min(truevals_lambda), y = min(truevals_lambda), xend = max(truevals_lambda), yend = max(truevals_lambda),colour='line of identity')) + 
   geom_point(data = median_lambda_parameters_df, mapping = aes(x = truevals_lambda, y = overall_median_recovered_lambda,color='median recovered values',size=5))+ 
-  xlab('True Lambda Value') + ylab ('Recovered Lambda Value') + ggtitle('Recovery: Lambda (Loss Aversion)');
+  xlab('True Lambda Value') + ylab ('Recovered Lambda Value') + ggtitle('Recovery: Lambda (Loss Aversion)') + theme(aspect.ratio = 1);
 print(plot_recoveredlambda)
+ggsave("plot_recoveredlambda.pdf",device="pdf")
 
 # Do Mu
 overall_median_recovered_mu = array(dim=length(truevals_mu))
@@ -271,12 +272,21 @@ upper_bound = recovered_parameters + conf_interval_zscore * recovered_parameter_
 lower_bound = recovered_parameters - conf_interval_zscore * recovered_parameter_errors;
 
 is_in_confidence_interval = array(dim=dim(recovered_parameters));
+is_in_confidence_interval_rho = array(dim=c(number_of_subjects,simulations_per_subject));
+is_in_confidence_interval_lambda = array(dim=c(number_of_subjects,simulations_per_subject));
+is_in_confidence_interval_mu = array(dim=c(number_of_subjects,simulations_per_subject));
 
 for(simulation in 1:simulations_per_subject){
   is_in_confidence_interval[,,simulation] = (truevals < upper_bound[,,simulation]) & (truevals > lower_bound[,,simulation]);
-}
+  is_in_confidence_interval_rho[,simulation] = (truevals$rho < upper_bound[,1,simulation]) & (truevals$rho > lower_bound[,1,simulation]);
+  is_in_confidence_interval_lambda[,simulation] = (truevals$lambda < upper_bound[,2,simulation]) & (truevals$lambda > lower_bound[,2,simulation]);
+  is_in_confidence_interval_mu[,simulation] = (truevals$mu < upper_bound[,3,simulation]) & (truevals$mu > lower_bound[,3,simulation]);
+  }
 
 percent_accurately_recovered = mean(is_in_confidence_interval,na.rm=T) # na.rm req. b/c sometimes hessian is indeterminate (is not at a true minimum)
+percent_accurately_recovered_rho = mean(is_in_confidence_interval_rho,na.rm=T)
+percent_accurately_recovered_lambda = mean(is_in_confidence_interval_lambda,na.rm=T)
+percent_accurately_recovered_mu = mean(is_in_confidence_interval_mu,na.rm=T)
 
 sum(is.na(is_in_confidence_interval)) # how many NAs are there
 sum(is.na(is_in_confidence_interval))/prod(dim(is_in_confidence_interval)) # fraction (0:1) that is NA
@@ -291,9 +301,9 @@ Do a more in-depth version of the graphs above of all estimates, for just one 'p
 # Ensure these values are used as actual values
 typical_rho = 0.9;
 typical_lambda = 1.8;
-typical_mu = 50; 
+typical_mu = 75; 
 
-typical_subject_index = which((truevals[,1]==typical_rho)&(truevals[,2]==typical_lambda)&(truevals[,3]==typical_mu))
+typical_subject_index = which((truevals$rho==typical_rho)&(truevals$lambda==typical_lambda)&(truevals$mu==typical_mu))
 
 typical_subject_estimates = data.frame(seq(from=1, to=simulations_per_subject, by=1),t(recovered_parameters[typical_subject_index,,]), t(recovered_parameter_errors[typical_subject_index,,]))
 colnames(typical_subject_estimates) <- c('simulation','rho','lambda','mu','rhoSE','lambdaSE','muSE')
@@ -321,6 +331,17 @@ estimates_plot_mu = ggplot(data = typical_subject_estimates, aes(x = seq(from=1,
   geom_segment(aes(x = 1, y = typical_mu, xend = simulations_per_subject, yend = typical_mu, colour='True Value')) + 
   xlab('Simulation Number') + ylab('Mu value') + ggtitle('Estimated vs. True Mu')
 print(estimates_plot_mu)
+
+densityplot_rho = ggplot(typical_subject_estimates,aes(rho)) + geom_density() + xlim(0.5,2) + geom_vline(xintercept = typical_rho, color = 'green', size = 2) + theme(aspect.ratio=1); # expected poss. range for R
+print(densityplot_rho)
+
+densityplot_lambda = ggplot(typical_subject_estimates,aes(lambda)) + geom_density() + geom_vline(xintercept = typical_lambda, color = "red", size = 2) + theme(aspect.ratio=1) + scale_x_continuous(breaks = seq(1,7,1), limits = c(0.5,5)); # expected poss. range for L
+print(densityplot_lambda)
+ggsave("densityplot_lambda.eps",device = 'eps')
+
+densityplot_mu = ggplot(typical_subject_estimates,aes(mu)) + geom_density() + geom_vline(xintercept = typical_mu, color = "blue", size = 2) + theme(aspect.ratio=1) + scale_x_continuous(breaks = seq(0,200,25), limits = c(0,200)); # expected poss. range for M
+print(densityplot_mu)
+
 ```
 
 
