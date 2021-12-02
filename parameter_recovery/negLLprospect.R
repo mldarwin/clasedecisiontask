@@ -16,4 +16,5 @@ choiceP[choiceP==1] = 1-eps; # because the log of 0 = -infinity & that breaks th
 choiceP[choiceP==0] = eps;
 
 nll <- -sum(choices * log(choiceP) + (1 - choices) * log(1-choiceP));
+return(nll)
 }
