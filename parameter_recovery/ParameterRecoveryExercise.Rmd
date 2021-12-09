@@ -25,7 +25,7 @@ eps = .Machine$double.eps;
 
 ## Loading the choice set
 ```{r load-choice-set}
-choiceset_path = '../choice_set/novel_choiceset_creation/clasechoiceset_N125_gainloss_gainonly.csv';
+choiceset_path = '../choice_set/novel_choiceset_creation/clasechoiceset_N135_gainloss_gainonly.csv';
 
 choiceset <- read.csv(choiceset_path);
 
@@ -76,10 +76,12 @@ Plot choice probabilities and binary choices as a sanity check that code correct
 ```{r plot-an-example-participant}
 example_parameters = c(.89, 1.8, 50); 
 
-example_choice_probability = choice_probability(choiceset,example_parameters);
+choiceset_nochecktrials = choiceset[choiceset$ischecktrial==0,];
+
+example_choice_probability = choice_probability(choiceset_nochecktrials,example_parameters);
 example_choice_binarychoices = binary_choice_from_probability(example_choice_probability);
 
-example_choice_dataframe = data.frame(choiceset, example_choice_probability, example_choice_binarychoices);
+example_choice_dataframe = data.frame(choiceset_nochecktrials, example_choice_probability, example_choice_binarychoices);
 
 # Plot histogram of choice probabilities to see how variable choices are predicted to be.
 hist(example_choice_probability,xlab = 'Probability of Selecting Risky Option', ylab = 'Count of this probability', main = 'Distribution of choice probabilities given parameters');
@@ -92,6 +94,7 @@ print(example_probabilistic_gainloss_plot);
 
 example_probabilistic_gainonly_plot = ggplot(data = example_choice_dataframe[example_choice_dataframe$riskyloss >= 0,], aes(x = riskygain, y = certainalternative)) + 
   geom_point(aes(color = example_choice_probability)) + 
+  xlim(c(0,32)) + ylim(c(0,14.5)) + 
   scale_colour_gradient(low='red',high='green');
 print(example_probabilistic_gainonly_plot);
 
