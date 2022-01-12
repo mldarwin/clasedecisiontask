@@ -79,7 +79,7 @@ for (subject in 1:number_of_subjects){
   # The parallelized loop
   alloutput <- foreach(iteration=1:iterations_per_estimation, .combine=rbind) %dopar% {
     initial_values = runif(3)*initial_values_upperbound + initial_values_lowerbound; # create random initial values
-    
+
     # The estimation itself
     output <- optim(initial_values, negLLprospect, choiceset = choiceset, choices = choices,
                     method = "L-BFGS-B", lower = estimation_lowerbound, upper = estimation_upperbound, hessian = TRUE);
@@ -105,14 +105,20 @@ for (subject in 1:number_of_subjects){
   estimated_parameter_errors[subject,] = sqrt(diag(solve(best_hessian)));
   
   binary_gainloss_plot = ggplot(data = tmpdata[tmpdata$riskyloss < 0,], aes(x = riskygain, y = riskyloss)) + 
-    geom_point(aes(color = as.logical(tmpdata$choice[tmpdata$riskyloss < 0]))) + 
-    scale_color_manual(values = c('#ff0000','#00ff44'), guide=FALSE);
+    geom_point(aes(color = as.logical(tmpdata$choice[tmpdata$riskyloss < 0]), alpha = 0.7, size = 3)) + 
+    scale_color_manual(values = c('#ff0000','#00ff44'), guide=FALSE) + 
+    theme_linedraw() + theme(legend.position = "none", aspect.ratio=1) + 
+    ggtitle(sprintf('Gain-Loss Decisions: CLASE%03g',subjIDs[subject]));
   print(binary_gainloss_plot);
+  ggsave(sprintf('gainloss_CLASE%03g.png',subjIDs[subject]),height=4.2,width=4.6,dpi=300);
   
   binary_gainonly_plot = ggplot(data = tmpdata[tmpdata$riskyloss >= 0,], aes(x = riskygain, y = certainalternative)) + 
-    geom_point(aes(color = as.logical(tmpdata$choice[tmpdata$riskyloss >= 0]))) + 
-    scale_color_manual(values = c('#ff0000','#00ff44'),guide=FALSE);
+    geom_point(aes(color = as.logical(tmpdata$choice[tmpdata$riskyloss >= 0]), alpha = 0.7, size = 3)) + 
+    scale_color_manual(values = c('#ff0000','#00ff44'),guide=FALSE) + 
+    theme_linedraw() + theme(legend.position = "none", aspect.ratio=1) + 
+    ggtitle(sprintf('Gain-Only Decisions: CLASE%03g',subjIDs[subject]));
   print(binary_gainonly_plot);
+  ggsave(sprintf('gainonly_CLASE%03g.png',subjIDs[subject]),height=4.2,width=4.6,dpi=300);
 }
 
 parallel::stopCluster(cl = my.cluster)
