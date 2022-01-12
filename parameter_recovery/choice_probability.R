@@ -13,10 +13,17 @@ choice_probability <- function(choiceset, parameters) {
   lambda = as.double(parameters[2]); # loss aversion
   mu = as.double(parameters[3]); # choice consistency
   
-  # calculate utility of the two options
-  utility_risky_option = 0.5 * choiceset$riskygain^rho + 
-                        -0.5 * lambda * abs(choiceset$riskyloss)^rho;
-  utility_safe_option = choiceset$certainalternative^rho;
+  # calculate utility of the two options, making as few assumptions as possible about the +/- sign of the values
+  utility_risky_1 = (choiceset$riskygain >= 0) * abs(choiceset$riskygain)^rho + 
+    (choiceset$riskygain < 0) * -lambda * abs(choiceset$riskygain)^rho;
+  
+  utility_risky_2 = (choiceset$riskyloss >= 0) * abs(choiceset$riskyloss)^rho + 
+    (choiceset$riskyloss < 0) * -lambda * abs(choiceset$riskyloss)^rho;
+  
+  utility_risky_option = 0.5 * utility_risky_1 + 0.5 * utility_risky_2
+  
+  utility_safe_option = (choiceset$certainalternative >= 0) * abs(choiceset$certainalternative)^rho + 
+    (choiceset$certainalternative < 0) * -lambda * abs(choiceset$certainalternative)^rho;
   
   # normalize values using this term
   div <- max(choiceset)^rho; # decorrelates rho & mu
