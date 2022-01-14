@@ -352,8 +352,11 @@ try
             
             % ready the response period stuff that will show up in the response
             % collection period
-            DrawFormattedText(wind, 'Z - left','center', 'center',wht,[],[],[],[],[],[lRect(1),lRect(4) lRect(3) lRect(4)+lRect(2)]);
-            DrawFormattedText(wind, 'M - right','center', 'center',wht,[],[],[],[],[],[rRect(1),rRect(4) rRect(3) rRect(4)+rRect(2)]);
+%             DrawFormattedText(wind, 'Z - left','center', 'center',wht,[],[],[],[],[],[lRect(1),lRect(4) lRect(3) lRect(4)+lRect(2)]);
+%             DrawFormattedText(wind, 'M - right','center', 'center',wht,[],[],[],[],[],[rRect(1),rRect(4) rRect(3) rRect(4)+rRect(2)]);
+            DrawFormattedText2('<size=50><b>Z - left','win', wind, 'sx', 'center', 'sy', 'center', 'xalign', 'center', 'yalign', 'center', 'winRect', [lRect(1),lRect(4) lRect(3) lRect(4)+lRect(2)]);
+            DrawFormattedText2('<size=50><b>M - right','win', wind, 'sx', 'center', 'sy', 'center', 'xalign', 'center', 'yalign', 'center', 'winRect', [rRect(1),rRect(4) rRect(3) rRect(4)+rRect(2)]);
+            Screen('FrameRect',wind,[],[],5);
             
             while GetSecs - subjdata.practice.studystart < t*prestime + (t-1)*(choicetime + isitime + feedbacktime) + sum(ititime(1:(t-1)))
                 [keyIsDown,~,keyCode] = KbCheck(-1);
