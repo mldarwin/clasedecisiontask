@@ -46,7 +46,8 @@ estimation_upperbound = c(2, 8, 300); # sensible/probable upper bounds on parame
 estimated_parameters = array(dim = c(number_of_subjects, number_of_parameters));
 estimated_parameter_errors = array(dim = c(number_of_subjects, number_of_parameters));
 estimated_nlls = array(dim = c(number_of_subjects,1));
-
+mean_choice_likelihood = array(dim = c(number_of_subjects,1));
+  
 # # Initialize the progress bar
 # progress_bar = txtProgressBar(min = 0, max = number_of_subjects, style = 3)
 
@@ -96,9 +97,9 @@ for (subject in 1:number_of_subjects){
   estimated_parameters[subject,] = all_estimates[best_nll_index,];
   estimated_nlls[subject] = all_nlls[best_nll_index];
   
-  # # Code to calculate the mean choice likelihood given our best estimates
-  # choiceP = choice_probability(choiceset,estimated_parameters);
-  # mean_choice_likelihood = mean(choices * choiceP + (1 - choices) * (1-choiceP));
+  # Calculate & store the mean choice likelihood given our best estimates
+  choiceP = choice_probability(choiceset,estimated_parameters[subject,]);
+  mean_choice_likelihood[subject] = mean(choices * choiceP + (1 - choices) * (1-choiceP));
   
   # Calculate the hessian at those parameter values & save out
   best_hessian = hessian(func=negLLprospect, x = all_estimates[best_nll_index,], choiceset = choiceset, choices = choices)
