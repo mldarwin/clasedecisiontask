@@ -63,8 +63,10 @@ estimation_start_time = proc.time()[[3]]; # Start the clock
 
 for (subject in 1:number_of_subjects){
   
-  ind = (data$subjID == subjIDs[subject]) & is.finite(data$choice);
-  tmpdata <- data[ind,]; # remove rows with NAs (missed choices) from estimation
+  subject_data = data[data$subjID == subjIDs[subject],];
+  
+  finite_ind = is.finite(subject_data$choice);
+  tmpdata <- subject_data[ind,]; # remove rows with NAs (missed choices) from estimation
   choiceset = tmpdata[, 1:3];
   choices = tmpdata$choice;
   
