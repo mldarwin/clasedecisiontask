@@ -1,5 +1,7 @@
 #### Environment setup #### 
 
+# Working directory needs to be set to `parameter_recovery` directory of the repository.
+
 source('./choice_probability.R');
 source('./binary_choice_from_probability.R')
 source('./negLLprospect.R');
@@ -15,7 +17,7 @@ iterations_per_estimation = 100; # how many times to perform the maximum likelih
 #### Path to the Data ####
 
 # Configure this for the system it's being used on
-datapath = '~/Documents/Dropbox/Academics/Research/CLASE Project 2021/data/'; # DATA PATH FOR PSH
+datapath = '~/Documents/Dropbox/Academics/Research/CLASE Project 2021/data/Behavioral data files/'; # DATA PATH FOR PSH
 fn = dir(datapath,pattern = glob2rx('clase*csv'),full.names = T);
 number_of_subjects = length(fn)
 
@@ -43,8 +45,10 @@ estimation_lowerbound = c(eps,eps,eps); # lower bound of parameter values is mac
 estimation_upperbound = c(2, 8, 300); # sensible/probable upper bounds on parameter values
 
 # Create placeholders for the final estimates of the parameters, errors, and NLLs
-estimated_parameters = array(dim = c(number_of_subjects, number_of_parameters));
-estimated_parameter_errors = array(dim = c(number_of_subjects, number_of_parameters));
+estimated_parameters = array(dim = c(number_of_subjects, number_of_parameters),
+                             dimnames = list(c(), c('rho','lambda','mu')));
+estimated_parameter_errors = array(dim = c(number_of_subjects, number_of_parameters),
+                                   dimnames = list(c(), c('rho','lambda','mu')));
 estimated_nlls = array(dim = c(number_of_subjects,1));
 mean_choice_likelihood = array(dim = c(number_of_subjects,1));
   
@@ -66,7 +70,7 @@ for (subject in 1:number_of_subjects){
   subject_data = data[data$subjID == subjIDs[subject],];
   
   finite_ind = is.finite(subject_data$choice);
-  tmpdata <- subject_data[ind,]; # remove rows with NAs (missed choices) from estimation
+  tmpdata <- subject_data[finite_ind,]; # remove rows with NAs (missed choices) from estimation
   choiceset = tmpdata[, 1:3];
   choices = tmpdata$choice;
   
