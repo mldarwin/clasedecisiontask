@@ -1,0 +1,26 @@
+TTL pulse marking start of the practice block (line 364) = 20
+TTL pulse marking start of option presentation (line 393) = 30
+TTL pulse marking start of response window (line 417) = 40
+TTL pulse marking start of ISI (line 443) = 15
+TTL pulse marking outcome presentation (line 517) = 50
+TTL pulse marking start of ITI (line 541) = 25
+TTL pulse marking end of practice block (line 563) = 21
+
+TTL pulse marking start of the actual study (628) = 60
+TTL pulse marking screen flip that shows choice options (line 704) = 70
+TTL pulse marking start of the response window (line 727) = 80
+TTL pulse marking end of the response window (line 751) = 81
+TTL pulse marking start of the outcome epoch (line 826) = 90
+TTL pulse marking end of outcome epoch (line 850) = 91
+TTL pulse marking end of the study (line 875) = 61
+
+
+Replaced all %DatapixxAOttl();
+with:
+write(device,sprintf("mh%c%c", 20, 0), "char");
+where '20' changes based on TTL signature desired
+
+
+
+
+
