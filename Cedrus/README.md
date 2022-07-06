@@ -1,4 +1,4 @@
-Files needed for execution of hexidecmial TTL encoding for risky decision making task
+Files needed for execution of hexidecimal TTL encoding for risky decision making task
 
 CedrusSetup.m = code incorporated into main task function for new TTL signatures
 
